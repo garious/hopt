@@ -75,17 +75,17 @@ import Data.ListLike
 import qualified Data.ByteString.Lazy.Char8 as L
 
 data Cfg = Cfg {
-    _passes  :: [String]
-  , _inFile  :: FilePath
-  , _outFile :: FilePath
-  , _isText  :: Bool      -- Output as text, not bitcode
+    _optPasses  :: [String]
+  , _inFile     :: FilePath
+  , _outFile    :: FilePath
+  , _isText     :: Bool      -- Output as text, not bitcode
   } deriving (Show, Eq)
 
 -- Use Template Haskell to generate getters and setters
 -- for each field in Cfg
 mkLabel ''Cfg
 
-type Pass = Iter Llvm IO Llvm
+type OptPass = Iter Flow IO Flow
 
 main :: IO ()
 main = do
@@ -96,42 +96,42 @@ compile :: Cfg -> IO ()
 compile Cfg{_isText=False} = error "Write bitcode?  What am I, a compiler?  Please come back with -S."
 compile cfg  = do
     hdl <- outPath == "-" ? (return stdout, openFile outPath WriteMode)
-    input |$ parseLlvm .| optimize (get passes cfg) .| printLlvm .| handleI hdl
+    input |$ parseFlow .| optimize (get optPasses cfg) .| printFlow .| handleI hdl
   where
     input = inPath == "-" ? (enumStdin, enumFile' inPath)
     inPath  = get inFile cfg
     outPath = get outFile cfg
 
-data Llvm = LlvmNop
+data Flow = Nop
           | BasicBlock [Char]
   deriving (Show)
 
-instance Monoid Llvm where
-    mempty                                = LlvmNop
-    mappend LlvmNop x                     = x
-    mappend x LlvmNop                     = x
+instance Monoid Flow where
+    mempty                                = Nop
+    mappend Nop x                         = x
+    mappend x Nop                         = x
     mappend (BasicBlock x) (BasicBlock y) = BasicBlock $ x ++ y
 
-instance ChunkData Llvm where
-    null LlvmNop = True
+instance ChunkData Flow where
+    null Nop     = True
     null _       = False
     chunkShow    = show
 
-parseLlvm :: Inum L.ByteString Llvm IO a
-parseLlvm = mkInum parseLlvm'
+parseFlow :: Inum L.ByteString Flow IO a
+parseFlow = mkInum parseFlow'
 
-parseLlvm' :: Iter L.ByteString IO Llvm
-parseLlvm' = lineI >>= return . BasicBlock . L.unpack
+parseFlow' :: Iter L.ByteString IO Flow
+parseFlow' = lineI >>= return . BasicBlock . L.unpack
 
-optimize :: [String] -> Inum Llvm Llvm IO a
+optimize :: [String] -> Inum Flow Flow IO a
 optimize []     = inumNop
-optimize (x:xs) = maybe (error x) mkInum (lookup x passMap) |. optimize xs
+optimize (x:xs) = maybe (error x) mkInum (lookup x optPassMap) |. optimize xs
 
-printLlvm :: Inum Llvm L.ByteString IO a
-printLlvm = mkInum prettyLlvm
+printFlow :: Inum Flow L.ByteString IO a
+printFlow = mkInum prettyFlow
 
-prettyLlvm :: Iter Llvm IO L.ByteString 
-prettyLlvm  = dataI >>= return . L.pack . (++"\n") . show
+prettyFlow :: Iter Flow IO L.ByteString
+prettyFlow  = dataI >>= return . L.pack . (++"\n") . show
 
 -- | An alternative to the if-then-else syntax
 (?) :: Bool -> (a, a) -> a
@@ -154,7 +154,7 @@ arguments = skipMany argument <* eofI
 argument :: Iter String (State Cfg) ()
 argument = textOutputFlag
        <|> outputFileFlag
-       <|> passFlag
+       <|> optPassFlag
        <|> inputFileArg
 
 textOutputFlag :: Iter String (State Cfg) ()
@@ -166,22 +166,22 @@ outputFileFlag = flag "o" >> flagArg >>= puts outFile
 inputFileArg :: Iter String (State Cfg) ()
 inputFileArg = argArg >>= puts inFile
 
-passFlag :: Iter String (State Cfg) ()
-passFlag = do
+optPassFlag :: Iter String (State Cfg) ()
+optPassFlag = do
     p <- string "-" *> flagArg
-    case lookup p passMap of
-       Just _  -> modify passes (++ [p])
+    case lookup p optPassMap of
+       Just _  -> modify optPasses (++ [p])
        Nothing -> mzero
 
 -- | A map from command-line names to the function that implements an
 --   optimization pass
-passMap :: [(String, Pass)]
-passMap = [
+optPassMap :: [(String, OptPass)]
+optPassMap = [
     ("constprop", constProp)
   ]
 
 -- \ The Constant Propogation pass
-constProp :: Pass
+constProp :: OptPass
 constProp = dataI
 
 flag :: Monad m => String -> Iter String m ()
