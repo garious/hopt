@@ -8,7 +8,7 @@ V=Output
 
 all: $V/opt
 
-$V/opt: Opt.hs
+$V/opt: OptMain.hs Opt.hs ArgParser.hs
 	@mkdir -p $(@D)
 	ghc --make -Wall $< -outputdir=$V -o $@
 
