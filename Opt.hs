@@ -2,7 +2,6 @@
 
 module Opt where
 
-import Prelude hiding (null)
 import ArgParser
   ( Cfg(Cfg)
   , optPasses
@@ -16,11 +15,6 @@ import System.IO
   , IOMode(WriteMode)
   , stdout
   )
-import Data.Monoid
-  ( mempty
-  , mappend
-  , Monoid
-  )
 
 -- From fclabels package
 import Data.Label.Pure
@@ -31,8 +25,6 @@ import Data.Label.Pure
 import Data.IterIO
   ( Iter
   , Inum
-  , ChunkData
-  , chunkShow
   , (|$)
   , (|.)
   , (.|)
@@ -40,35 +32,50 @@ import Data.IterIO
   , enumStdin
   , mkInum
   , handleI
-  , lineI
   , inumNop
   , dataI
   )
-import Data.IterIO.Iter
-  ( null
-  )
---import Data.IterIO.Parse
---  ( (<|>)
---  , string
---  , (<:>)
---  , (<*)
---  , (*>)
+import Data.IterIO.Parse
+  ( (<|>)
+  , (<?>)
+  , (<*>)
+  , string
+  , (<:>)
+  , (<$>)
+  , (<*)
+  , (*>)
 --  , skipMany
---  , satisfy
---  , eofI
---  , eord
---  , whileI
---  , while1I
---  , skipWhileI
---  )
+  , satisfy
+  , eofI
+  , eord
+  , whileI
+  , while1I
+  , skipWhileI
+  , skipWhile1I
+  )
+import Data.IterIO.Trans
+  ( runStateTLI
+  )
 import Data.ListLike
   ( ListLike
   , singleton
   )
 
+-- From mtl package
+import Control.Monad.State
+  ( StateT
+  --, put
+  , modify
+  )
+import qualified Control.Monad.State as S
+--import Control.Monad.Trans
+--  ( liftIO
+--  )
+
 import qualified Data.ByteString.Lazy.Char8 as L
 
-type OptPass = Iter Flow IO Flow
+type OptPass = Iter Block IO Block
+type StateIO a = StateT a IO
 
 compile :: Cfg -> IO ()
 compile Cfg{_isText=False} = error "Write bitcode?  What am I, a compiler?  Please come back with -S."
@@ -80,50 +87,103 @@ compile cfg  = do
     inPath  = get inFile cfg
     outPath = get outFile cfg
 
-data Flow = Nop
-          | BasicBlock [Statement]
+type Block = [Statement]
+
+data Statement = Declaration Type String
+               | Assignment String Expr
+               | Return Expr
   deriving (Show, Eq)
 
-data Statement = Declaration String Type
-               | Assignment String (Expression Int)
-               | Garbage String
+data Type = TyInteger
+          | TyString
+          | TyDynamic
   deriving (Show, Eq)
 
-data Type = TyInt
-          | TyAmbiguous [Type]
-          | TyUndiscovered
+data Expr   = ExprConstant Literal
+            | ExprVar String
+            | ExprNil
   deriving (Show, Eq)
 
-data Expression a = Constant a
+data Literal = LitString String
+             | LitInteger Integer
   deriving (Show, Eq)
 
-instance Monoid Flow where
-    mempty                                = Nop
-    mappend Nop x                         = x
-    mappend x Nop                         = x
-    mappend (BasicBlock x) (BasicBlock y) = BasicBlock $ x ++ y
+parseFlow :: Inum L.ByteString Block IO a
+parseFlow = mkInum (whitespace *> parseFlow' <* terminator)
 
-instance ChunkData Flow where
-    null Nop     = True
-    null _       = False
-    chunkShow    = show
+parseFlow' :: Iter L.ByteString IO Block
+parseFlow' = varStat
+         <|> assignStat
+         <|> returnStat
+         <|> return []  -- line with a semi-colon
 
-parseFlow :: Inum L.ByteString Flow IO a
-parseFlow = mkInum parseFlow'
+terminator :: Iter L.ByteString IO ()
+terminator = skipWhileI isNotTerminator <* satisfy (const True)
+         <|> eofI
+         <?> "terminator"
 
-parseFlow' :: Iter L.ByteString IO Flow
-parseFlow' = (lineI >>= return . BasicBlock . singleton . Garbage . L.unpack)
-         -- <|> (lineI >>= return . BasicBlock . singleton . Garbage . L.unpack)
+isNotTerminator :: (Enum a, Eq a) => a -> Bool
+isNotTerminator s = isWhite s && s /= eord '\n' && s /= eord ';'
 
-optimize :: [String] -> Inum Flow Flow IO a
+varStat :: Iter L.ByteString IO Block
+varStat = do
+    keyword "var"
+    nm <- identifier
+    as <- (singleton . Assignment nm <$> (token "=" *> expression)) <|> return []
+    return $ Declaration TyDynamic nm : as
+    <?> "variable declaration"
+
+assignStat :: Iter L.ByteString IO Block
+assignStat = singleton <$> (Assignment <$> identifier <*> (token "=" *> expression))
+         <?> "assignment"
+
+returnStat :: Iter L.ByteString IO Block
+returnStat = singleton . Return <$> (keyword "return" *> expression)
+         <?> "return statement"
+
+expression :: Iter L.ByteString IO Expr
+expression = ExprVar <$> identifier
+         <|> ExprConstant . LitInteger <$> integer
+         <?> "expression"
+
+integer :: Iter L.ByteString IO Integer
+integer = read . L.unpack <$> while1I isAlphaNumOrUnder
+
+identifier :: Iter L.ByteString IO String
+identifier = L.unpack <$> satisfy isLetterOrUnder <:> whileI isAlphaNumOrUnder
+
+isLetterOrUnder :: (Enum a, Ord a) => a -> Bool
+isLetterOrUnder s = s >= eord 'a' && s <= eord 'z' || s >= eord 'A' && s <= eord 'Z' || s == eord '_'
+
+isAlphaNumOrUnder :: (Enum a, Ord a) => a -> Bool
+isAlphaNumOrUnder s = isLetterOrUnder s || s >= eord '0' && s <= eord '9'
+
+-- Requires some whitespace after keyword
+keyword :: String -> Iter L.ByteString IO ()
+keyword s = string s >> whitespace1
+
+-- Optional whitespace on either side of a given string
+token :: String -> Iter L.ByteString IO ()
+token s = whitespace >> string s >> whitespace
+
+whitespace :: Iter L.ByteString IO ()
+whitespace = skipWhileI isWhite
+
+whitespace1 :: Iter L.ByteString IO ()
+whitespace1 = skipWhile1I isWhite
+
+isWhite :: (Enum a, Eq a) => a -> Bool
+isWhite s = s == eord ' ' || s == eord '\n' || s == eord '\t' || s == eord '\r'
+
+optimize :: [String] -> Inum Block Block IO a
 optimize []     = inumNop
 optimize (x:xs) = maybe (error x) mkInum (lookup x optPassMap) |. optimize xs
 
-printFlow :: Inum Flow L.ByteString IO a
+printFlow :: Inum Block L.ByteString IO a
 printFlow = mkInum prettyFlow
 
-prettyFlow :: Iter Flow IO L.ByteString
-prettyFlow  = dataI >>= return . L.pack . (++"\n") . show
+prettyFlow :: Iter Block IO L.ByteString
+prettyFlow  = L.pack . (++"\n") . show <$> dataI
 
 -- | An alternative to the if-then-else syntax
 (?) :: Bool -> (a, a) -> a
@@ -142,5 +202,22 @@ optPassMap = [
 
 -- \ The Constant Propogation pass
 constProp :: OptPass
-constProp = dataI
+constProp = fst <$> runStateTLI constProp' []
+
+constProp' :: Iter Block (StateIO [(String, Literal)]) Block
+constProp' = do
+    xs <- dataI
+    xss <- mapM updateState xs
+    return (concat xss)
+
+updateState :: Statement -> Iter Block (StateIO [(String, Literal)]) Block
+updateState (Assignment nm (ExprConstant x)) = do
+   modify (\xs -> (nm, x) : xs)
+   return []
+updateState (Assignment nm (ExprVar vNm)) = do
+   xs <- S.get
+   case lookup vNm xs of
+     Just x  -> return [Assignment nm (ExprConstant x)]
+     Nothing -> return [Assignment nm (ExprVar vNm)]
+updateState x = return [x]
 
