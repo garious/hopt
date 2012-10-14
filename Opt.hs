@@ -1,4 +1,5 @@
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Opt where
 
@@ -14,6 +15,9 @@ import System.IO
   ( openFile
   , IOMode(WriteMode)
   , stdout
+  )
+import Data.String
+  ( fromString
   )
 
 -- From fclabels package
@@ -62,6 +66,9 @@ import Data.ListLike
   ( ListLike
   , singleton
   )
+import Data.Monoid
+  ( (<>)  -- Generalization of ++
+  )
 
 -- From mtl package
 import Control.Monad.State
@@ -101,7 +108,6 @@ data Type = TyInteger
 
 data Expr   = ExprConstant Literal
             | ExprVar String
-            | ExprNil
   deriving (Show, Eq)
 
 data Literal = LitString String
@@ -183,7 +189,23 @@ printFlow :: Inum Block L.ByteString IO a
 printFlow = mkInum prettyFlow
 
 prettyFlow :: Iter Block IO L.ByteString
-prettyFlow  = L.pack . (++"\n") . show <$> dataI
+prettyFlow  = L.unlines . map pretty <$> dataI
+
+class Pretty a where
+    pretty :: a -> L.ByteString
+
+instance Pretty Statement where
+    pretty (Declaration _ty s) = "var " <> fromString s
+    pretty (Assignment s e)    = fromString s <> " = " <> pretty e
+    pretty (Return e)          = "return " <> pretty e
+
+instance Pretty Expr where
+    pretty (ExprConstant lit)  = pretty lit
+    pretty (ExprVar nm)        = fromString nm
+
+instance Pretty Literal where
+    pretty (LitString s)       = fromString (show s)
+    pretty (LitInteger x)      = fromString (show x)
 
 -- | An alternative to the if-then-else syntax
 (?) :: Bool -> (a, a) -> a
