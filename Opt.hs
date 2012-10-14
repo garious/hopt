@@ -17,9 +17,7 @@ import System.IO
   )
 
 -- From fclabels package
-import Data.Label.Pure
-  ( get
-  )
+import qualified Data.Label.Pure as Lens
 
 -- From IterIO package
 import Data.IterIO
@@ -69,8 +67,8 @@ import Data.ListLike
 import Control.Monad.State
   ( StateT
   , modify
+  , get
   )
-import qualified Control.Monad.State as S
 --import Control.Monad.Trans
 --  ( liftIO
 --  )
@@ -83,11 +81,11 @@ compile :: Cfg -> IO ()
 compile Cfg{_isText=False} = error "Write bitcode?  What am I, a compiler?  Please come back with -S."
 compile cfg  = do
     hdl <- outPath == "-" ? (return stdout, openFile outPath WriteMode)
-    input |$ parseFlow .| optimize (get optPasses cfg) .| printFlow .| handleI hdl
+    input |$ parseFlow .| optimize (Lens.get optPasses cfg) .| printFlow .| handleI hdl
   where
     input = inPath == "-" ? (enumStdin, enumFile' inPath)
-    inPath  = get inFile cfg
-    outPath = get outFile cfg
+    inPath  = Lens.get inFile cfg
+    outPath = Lens.get outFile cfg
 
 type Block = [Statement]
 
@@ -225,12 +223,12 @@ constPropStat (Assignment nm (ExprConstant x)) = do
    modify ((nm, x) :)
    return []
 constPropStat e@(Assignment nm (ExprVar vNm)) = do
-   xs <- S.get
+   xs <- get
    case lookup vNm xs of
      Just x  -> constPropStat (Assignment nm (ExprConstant x))
      Nothing -> return [e]
 constPropStat e@(Return (ExprVar vNm)) = do
-   xs <- S.get
+   xs <- get
    case lookup vNm xs of
      Just x  -> return [Return (ExprConstant x)]
      Nothing -> return [e]
