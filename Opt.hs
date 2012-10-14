@@ -31,6 +31,10 @@ import Data.IterIO
   , enumFile'
   , enumStdin
   , mkInum
+  , mkInumAutoM
+  , ifeed
+  , ipopresid
+  , ungetI
   , handleI
   , inumNop
   , dataI
@@ -44,7 +48,6 @@ import Data.IterIO.Parse
   , (<$>)
   , (<*)
   , (*>)
---  , skipMany
   , satisfy
   , eofI
   , eord
@@ -55,6 +58,7 @@ import Data.IterIO.Parse
   )
 import Data.IterIO.Trans
   ( runStateTLI
+  , liftI
   )
 import Data.ListLike
   ( ListLike
@@ -64,7 +68,6 @@ import Data.ListLike
 -- From mtl package
 import Control.Monad.State
   ( StateT
-  --, put
   , modify
   )
 import qualified Control.Monad.State as S
@@ -74,8 +77,7 @@ import qualified Control.Monad.State as S
 
 import qualified Data.ByteString.Lazy.Char8 as L
 
-type OptPass = Iter Block IO Block
-type StateIO a = StateT a IO
+type OptPass a = Inum Block Block IO a
 
 compile :: Cfg -> IO ()
 compile Cfg{_isText=False} = error "Write bitcode?  What am I, a compiler?  Please come back with -S."
@@ -177,7 +179,7 @@ isWhite s = s == eord ' ' || s == eord '\n' || s == eord '\t' || s == eord '\r'
 
 optimize :: [String] -> Inum Block Block IO a
 optimize []     = inumNop
-optimize (x:xs) = maybe (error x) mkInum (lookup x optPassMap) |. optimize xs
+optimize (x:xs) = maybe (error x) id (lookup x optPassMap) |. optimize xs
 
 printFlow :: Inum Block L.ByteString IO a
 printFlow = mkInum prettyFlow
@@ -195,29 +197,42 @@ optPassNames = map fst optPassMap
 
 -- | A map from command-line names to the function that implements an
 --   optimization pass
-optPassMap :: [(String, OptPass)]
+optPassMap :: [(String, OptPass a)]
 optPassMap = [
     ("constprop", constProp)
   ]
 
 -- \ The Constant Propogation pass
-constProp :: OptPass
-constProp = fst <$> runStateTLI constProp' []
+constProp :: Inum Block Block IO a
+constProp = mkInumAutoM (loop [])
+  where 
+    loop st = do
+      (t', st') <- liftI (runStateTLI constPropChunk st)
+      done <- ifeed t'
+      if not done then
+        loop st'
+      else
+        ipopresid >>= ungetI
 
-constProp' :: Iter Block (StateIO [(String, Literal)]) Block
-constProp' = do
-    xs <- dataI
-    xss <- mapM updateState xs
-    return (concat xss)
+type StateIO a = StateT a IO
+type ConstMap = [(String, Literal)]
 
-updateState :: Statement -> Iter Block (StateIO [(String, Literal)]) Block
-updateState (Assignment nm (ExprConstant x)) = do
-   modify (\xs -> (nm, x) : xs)
+constPropChunk :: Iter Block (StateIO ConstMap) Block
+constPropChunk = concat <$> (dataI >>= mapM constPropStat)
+
+constPropStat :: Statement -> Iter Block (StateIO ConstMap) Block
+constPropStat (Assignment nm (ExprConstant x)) = do
+   modify ((nm, x) :)
    return []
-updateState (Assignment nm (ExprVar vNm)) = do
+constPropStat e@(Assignment nm (ExprVar vNm)) = do
    xs <- S.get
    case lookup vNm xs of
-     Just x  -> return [Assignment nm (ExprConstant x)]
-     Nothing -> return [Assignment nm (ExprVar vNm)]
-updateState x = return [x]
+     Just x  -> constPropStat (Assignment nm (ExprConstant x))
+     Nothing -> return [e]
+constPropStat e@(Return (ExprVar vNm)) = do
+   xs <- S.get
+   case lookup vNm xs of
+     Just x  -> return [Return (ExprConstant x)]
+     Nothing -> return [e]
+constPropStat x = return [x]
 
