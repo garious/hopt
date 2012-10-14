@@ -5,11 +5,12 @@ module Block where
 
 import Data.String
   ( fromString
+  , IsString
   )
 import Data.Monoid
   ( (<>)
+  , Monoid
   )
-import qualified Data.ByteString.Lazy.Char8 as L
 
 type Block = [Statement]
 
@@ -32,7 +33,7 @@ data Literal = LitString String
   deriving (Show, Eq)
 
 class Pretty a where
-    pretty :: a -> L.ByteString
+    pretty :: (Monoid s, IsString s) => a -> s
 
 instance Pretty Statement where
     pretty (Declaration _ty s) = "var " <> fromString s
