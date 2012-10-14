@@ -8,7 +8,7 @@ V=Output
 
 all: $V/opt
 
-$V/opt: OptMain.hs Opt.hs ArgParser.hs TsParser.hs Block.hs ConstProp.hs
+$V/opt: OptMain.hs Opt.hs ArgParser.hs TsParser.hs Block.hs OptPassUtils.hs ConstProp.hs UnassignedVars.hs
 	@mkdir -p $(@D)
 	ghc --make -Wall $< -outputdir=$V -o $@
 

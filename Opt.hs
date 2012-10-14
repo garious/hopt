@@ -40,6 +40,9 @@ import Data.IterIO
 import ConstProp
   ( constProp
   )
+import UnassignedVars
+  ( unassignedVars
+  )
 import Block
   ( Block
   , pretty
@@ -84,4 +87,5 @@ optPassNames = map fst optPassMap
 optPassMap :: [(String,  Inum Block Block IO a)]
 optPassMap = [
     ("constprop", constProp)
+  , ("unassigned", unassignedVars)
   ]
