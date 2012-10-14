@@ -25,9 +25,9 @@ import Data.IterIO
   ( Inum
   , Onum
   , Iter
+  , IterR
   , (|$)
   , (|.)
-  , (.|)
   , enumFile'
   , enumStdin
   , stdoutI
@@ -57,10 +57,10 @@ compile :: Cfg -> IO ()
 compile Cfg{_isText=False} = error "Write bitcode?  What am I, a compiler?  Please come back with -S."
 compile cfg  = do
     out <- output (get outFile cfg)
-    input (get inFile cfg) |$ parseFlow 
-                          .| optimize (get optPasses cfg)
-                          .| printFlow
-                          .| out
+    input (get inFile cfg) |. parseAndPrint (get optPasses cfg) |$ out
+
+parseAndPrint :: [String] -> Iter L.ByteString IO a -> Iter L.ByteString IO (IterR L.ByteString IO a)
+parseAndPrint xs = parseFlow |. optimize xs |. printFlow
 
 input :: FilePath -> Onum L.ByteString IO a
 input "-" = enumStdin
@@ -71,13 +71,13 @@ output "-" = return stdoutI
 output p   = handleI `fmap` openFile p WriteMode
 
 optimize :: [String] -> Inum Block Block IO a
-optimize []     = inumNop
-optimize (x:xs) = maybe (error x) id (lookup x optPassMap) |. optimize xs
+optimize = foldr (|.) inumNop . map lookupPass
+
+lookupPass :: String -> Inum Block Block IO a
+lookupPass x = maybe (error x) id (lookup x optPassMap)
 
 printFlow :: Inum Block L.ByteString IO a
-printFlow = mkInum $ do
-   xs <- dataI
-   return $ L.unlines (map pretty xs)
+printFlow = mkInum $ (L.unlines . map pretty) `fmap` dataI
 
 optPassNames :: [String]
 optPassNames = map fst optPassMap
