@@ -42,19 +42,19 @@ parseFlow' = varStat
          <|> assignStat
          <|> returnStat
 
-interactiveInput :: Iter L.ByteString IO Block
-interactiveInput = flushStat
-
 flushStat :: Iter L.ByteString IO Block
 flushStat = string ":flush" *> return [Flush]
 
 terminator :: Iter L.ByteString IO ()
-terminator = skipWhileI isNotTerminator <* satisfy (const True)
+terminator = skipWhileI isHorizSpace <* satisfy isTerminator
          <|> eofI
          <?> "terminator"
 
-isNotTerminator :: (Enum a, Eq a) => a -> Bool
-isNotTerminator s = isWhite s && s /= eord '\n' && s /= eord ';'
+isHorizSpace :: (Enum a, Eq a) => a -> Bool
+isHorizSpace s = s == eord ' ' || s == eord '\t'
+
+isTerminator :: (Enum a, Eq a) => a -> Bool
+isTerminator s = s == eord '\n' || s == eord ';'
 
 varStat :: Iter L.ByteString IO Block
 varStat = do
