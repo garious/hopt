@@ -17,6 +17,7 @@ type Block = [Statement]
 data Statement = Declaration Type String
                | Assignment String Expr
                | Return Expr
+               | Flush
   deriving (Show, Eq)
 
 data Type = TyInteger
@@ -39,6 +40,7 @@ instance Pretty Statement where
     pretty (Declaration _ty s) = "var " <> fromString s
     pretty (Assignment s e)    = fromString s <> " = " <> pretty e
     pretty (Return e)          = "return " <> pretty e
+    pretty (Flush)             = ""
 
 instance Pretty Expr where
     pretty (ExprConstant lit)  = pretty lit

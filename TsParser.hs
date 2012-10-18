@@ -34,13 +34,19 @@ import Block
 import qualified Data.ByteString.Lazy.Char8 as L
 
 parseFlow :: Inum L.ByteString Block IO a
-parseFlow = mkInum (whitespace *> parseFlow' <* terminator)
+parseFlow = mkInum $ whitespace *> (parseFlow' <|> flushStat) <* terminator
+                 <|> terminator *> return []
 
 parseFlow' :: Iter L.ByteString IO Block
 parseFlow' = varStat
          <|> assignStat
          <|> returnStat
-         <|> return []  -- line with a semi-colon
+
+interactiveInput :: Iter L.ByteString IO Block
+interactiveInput = flushStat
+
+flushStat :: Iter L.ByteString IO Block
+flushStat = string ":flush" *> return [Flush]
 
 terminator :: Iter L.ByteString IO ()
 terminator = skipWhileI isNotTerminator <* satisfy (const True)

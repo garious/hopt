@@ -14,6 +14,7 @@ import Control.Monad.State
   ( StateT
   , modify
   , get
+  , put
   )
 import OptPassUtils
   ( statefulPass
@@ -40,5 +41,9 @@ stat e@(Assignment nm _) = do
    case lookup nm xs of
      Just decl -> modify (delete (nm, e)) >> return [decl, e]
      Nothing -> return [e]
+stat Flush = do
+   xs <- get
+   put []
+   return $ map snd xs
 stat x = return [x]
 
