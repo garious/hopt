@@ -20,9 +20,11 @@ import UnassignedVars
   )
 import Block
   ( Block
-  , pretty
   )
-import TsParser
+import ToLlvm
+  ( toLlvm
+  )
+import LlvmParser
   ( parseFlow
   )
 
@@ -38,7 +40,7 @@ lookupPass :: String -> Inum Block Block IO a
 lookupPass x = maybe (error x) id (lookup x optPassMap)
 
 printFlow :: Inum Block L.ByteString IO a
-printFlow = mkInum $ (L.unlines . map pretty) `fmap` dataI
+printFlow = mkInum $ (L.unlines . map toLlvm) `fmap` dataI
 
 optPassNames :: [String]
 optPassNames = map fst optPassMap

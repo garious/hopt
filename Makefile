@@ -10,7 +10,7 @@ all: $V/opt test
 
 test: $V/OptTest.hs.passed $V/opt
 
-$V/opt: OptMain.hs Opt.hs ArgParser.hs TsParser.hs Block.hs OptPassUtils.hs ConstProp.hs UnassignedVars.hs
+$V/opt: OptMain.hs Opt.hs ArgParser.hs TsParser.hs LlvmParser.hs ToLlvm.hs Block.hs OptPassUtils.hs ConstProp.hs UnassignedVars.hs
 	@mkdir -p $(@D)
 	ghc --make -Wall $< -outputdir=$V -o $@
 

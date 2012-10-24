@@ -9,6 +9,7 @@ import Data.String
   )
 import Data.Monoid
   ( (<>)
+  , mempty
   , Monoid
   )
 
@@ -40,7 +41,7 @@ instance Pretty Statement where
     pretty (Declaration _ty s) = "var " <> fromString s
     pretty (Assignment s e)    = fromString s <> " = " <> pretty e
     pretty (Return e)          = "return " <> pretty e
-    pretty (Flush)             = ""
+    pretty (Flush)             = mempty
 
 instance Pretty Expr where
     pretty (ExprConstant lit)  = pretty lit
