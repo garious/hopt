@@ -13,5 +13,8 @@ main = do
 test :: L.ByteString -> L.ByteString -> IO ()
 test act ex = do
     txt <- enumPure act |. parseAndPrint ["constprop"] |$ pureI
-    assert (txt == ex) $ return ()
+    assert (txt == ex) noOp
+
+noOp :: Monad m => m ()
+noOp = return ()
 
