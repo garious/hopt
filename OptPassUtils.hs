@@ -26,8 +26,7 @@ statefulPass iter s = mkInumAutoM (loop s)
     loop st = do
       (t', st') <- liftI (runStateTLI iter st)
       done <- ifeed t'
-      if not done then
-        loop st'
-      else
-        ipopresid >>= ungetI
+      if not done
+        then loop st'
+        else ipopresid >>= ungetI
 

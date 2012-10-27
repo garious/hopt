@@ -93,10 +93,9 @@ inputFileArg = do
 optPassFlag :: [String] -> Iter String (State Cfg) ()
 optPassFlag optPassNames = do
     p <- string "-" *> flagArg
-    if elem p optPassNames then
-        optPasses %= (++ [p])
-    else
-        mzero
+    if elem p optPassNames
+      then optPasses %= (++ [p])
+      else mzero
 
 flag :: Monad m => String -> Iter String m ()
 flag s = string "-" *> string s *> skipSpace

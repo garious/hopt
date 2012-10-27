@@ -1,0 +1,26 @@
+Name:           hopt
+Version:        0.0
+License:        BSD3
+Cabal-Version:  >= 1.9.2
+Build-Type:     Simple
+
+executable hopt
+  main-is:        OptMain.hs
+  GHC-Options:    -Wall
+  build-depends:  base
+                , bytestring
+                , iterIO
+                , ListLike
+                , mtl
+                , lens
+
+Test-Suite ConstPropTest
+  type:           exitcode-stdio-1.0
+  main-is:        ConstPropTest.hs
+  GHC-Options:    -Wall -fno-ignore-asserts
+  build-depends:  base
+                , bytestring
+                , iterIO
+                , ListLike
+                , mtl
+

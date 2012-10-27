@@ -1,6 +1,8 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+module Main where
+
 import Opt(parseAndPrint)
 import Control.Exception(assert)
 import qualified Data.ByteString.Lazy.Char8 as L
