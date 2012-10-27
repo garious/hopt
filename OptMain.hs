@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 
 module Main where
 
@@ -7,12 +7,12 @@ import System.Environment
   )
 import ArgParser
   ( parseArguments
-  , Cfg(Cfg)
+  , Cfg
   , optPasses
   , inFile
   , outFile
   , optPasses
-  , _isText
+  , isText
   )
 import Opt
   ( parseAndPrint
@@ -33,10 +33,9 @@ import Data.IterIO
   , stdoutI
   , handleI
   )
-
--- From fclabels package
-import Data.Label.Pure
-  ( get
+-- From lens package
+import Control.Lens.Getter
+  ( (^.) -- Getter
   )
 
 import qualified Data.ByteString.Lazy.Char8 as L
@@ -47,10 +46,11 @@ main = do
     compile $ parseArguments optPassNames (unwords xs)
 
 compile :: Cfg -> IO ()
-compile Cfg{_isText=False} = error "Write bitcode?  What am I, a compiler?  Please come back with -S."
-compile cfg  = do
-    out <- output (get outFile cfg)
-    input (get inFile cfg) |. parseAndPrint (get optPasses cfg) |$ out
+compile cfg
+  | cfg^.isText == False = error "Write bitcode?  What am I, a compiler?  Please come back with -S."
+  | otherwise = do
+    out <- output $ cfg^.outFile
+    input (cfg^.inFile) |. parseAndPrint (cfg^.optPasses) |$ out
 
 input :: FilePath -> Onum L.ByteString IO a
 input "-" = enumStdin

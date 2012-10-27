@@ -3,13 +3,13 @@
 
 module ArgParser where
 
--- From fclabels package
-import Data.Label
-  ( mkLabel
+-- From lens package
+import Control.Lens.TH
+  ( makeLenses
   )
-import Data.Label.PureM
-  ( puts
-  , modify
+import Control.Lens.Setter
+  ( (%=)   -- modify a lens from a monad
+  , (.=)   -- assign a lens from a monad
   )
 
 -- From mtl package
@@ -53,7 +53,7 @@ data Cfg = Cfg {
 
 -- Use Template Haskell to generate getters and setters
 -- for each field in Cfg
-mkLabel ''Cfg
+makeLenses ''Cfg
 
 -- By default, do no optimizations on stdin, compile to bitcode and output to stdout
 defaultCfg :: Cfg
@@ -75,19 +75,26 @@ parseArguments optPassNames = flip execState defaultCfg . argParser
            <|> inputFileArg
 
 textOutputFlag :: Iter String (State Cfg) ()
-textOutputFlag = flag "S" >> puts isText True
+textOutputFlag = do
+    flag "S"
+    isText .= True
 
 outputFileFlag :: Iter String (State Cfg) ()
-outputFileFlag = flag "o" >> flagArg >>= puts outFile
+outputFileFlag = do
+    flag "o"
+    s <- flagArg
+    outFile .= s
 
 inputFileArg :: Iter String (State Cfg) ()
-inputFileArg = argArg >>= puts inFile
+inputFileArg = do
+    s <- argArg
+    inFile .= s
 
 optPassFlag :: [String] -> Iter String (State Cfg) ()
 optPassFlag optPassNames = do
     p <- string "-" *> flagArg
     if elem p optPassNames then
-        modify optPasses (++ [p])
+        optPasses %= (++ [p])
     else
         mzero
 
