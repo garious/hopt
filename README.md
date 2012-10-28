@@ -1,6 +1,8 @@
 Hopt
 ----
 
+![alt text](https://travis-ci.org/garious/hopt.png "Build Status")
+
 Hopt is the result of a course project in Compiler Optimizations at the University
 of California in San Diego.  The goal of hopt is to implement a modular compiler 
 framework that can begin optimizing a program before the full program is available 
