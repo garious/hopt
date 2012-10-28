@@ -25,7 +25,7 @@ import qualified Data.ByteString.Lazy.Char8 as L
 
 main :: IO ()
 main = do
-    test "define i32 @a(){%a = 4\n %b = %a\n ret i32 %b\n}" "define i32 @a() {\nret i32 4\n\n}\n"
+    test "define i32 @a(){%a = 4\n %b = %a\n ret i32 %b\n}" "define i32 @a() {\n  ret i32 4\n}\n"
     --test "%a = 4\n :flush\n %b = %a\n ret i32 %b" "%a = 4\nret i32 4\n"
 
 test :: L.ByteString -> L.ByteString -> IO ()

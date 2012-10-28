@@ -33,9 +33,13 @@ instance ToLlvm ToplevelEntity where
                                         <+> "@" <> fromString nm
                                          <> "(" <> fromString (intercalate ", " args) <> ")"
                                         <+> fromString (unwords as)
-                                        <+> "{\n" <> mconcat (map ((<> "\n") . toLlvm) blk) <> "\n}"
+                                        <+> "{\n" <> mconcat (map (bbLine . toLlvm) blk) <> "}"
 
     toLlvm (Target nm val)                = "target " <> fromString nm <> " = \"" <> fromString val <> "\""
+
+
+bbLine :: (Monoid s, IsString s) => s -> s
+bbLine s = "  " <> s <> "\n"
 
 
 instance ToLlvm Statement where
