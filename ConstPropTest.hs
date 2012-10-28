@@ -25,7 +25,8 @@ import qualified Data.ByteString.Lazy.Char8 as L
 
 main :: IO ()
 main = do
-    test "%a = 4\n %b = %a\n ret %b" "ret 4\n"
+    test "%a = 4\n %b = %a\n ret i32 %b" "ret i32 4\n"
+    test "%a = 4\n :flush\n %b = %a\n ret i32 %b" "%a = 4\nret i32 4\n"
 
 test :: L.ByteString -> L.ByteString -> IO ()
 test act ex = do

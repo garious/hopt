@@ -18,11 +18,11 @@ a program that is optimized as best it can given the partial input.
 The interface to the command-line executable 'opt' aims to be identical to LLVM's 'opt'.
 Example usage:
 
- $ echo -e "%0 = 42\n ret %0" | opt -S -constprop
+ $ echo -e "%0 = 42\n ret i32 %0" | opt -S -constprop
 
 Produces:
 
- ret 42
+ ret i32 42
 
 Note: At the time of this writing, the syntax parsed and produced by Hopt is not
       exactly legitimate LLVM - not even a subset!  But stay tuned...
