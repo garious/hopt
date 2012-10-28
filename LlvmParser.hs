@@ -35,15 +35,18 @@ import Block
 
 import qualified Data.ByteString.Lazy.Char8 as L
 
-parseFlow :: Inum L.ByteString Block IO a
-parseFlow = mkInum $ basicBlock
+parseFlow :: Inum L.ByteString Module IO a
+parseFlow = mkInum toplevelEntities
 
 basicBlock :: Iter L.ByteString IO Block
-basicBlock = whitespace *> (parseFlow' <|> flushStat) <* terminator
+basicBlock = concat `fmap` many basicBlock'
+
+basicBlock' :: Iter L.ByteString IO Block
+basicBlock' = whitespace *> (stat <|> flushStat) <* terminator
          <|> terminator *> return []
 
-parseFlow' :: Iter L.ByteString IO Block
-parseFlow' = assignStat
+stat :: Iter L.ByteString IO Block
+stat       = assignStat
          <|> returnStat
 
 flushStat :: Iter L.ByteString IO Block
@@ -119,6 +122,12 @@ whitespace1 = skipWhile1I isWhite
 isWhite :: (Enum a, Eq a) => a -> Bool
 isWhite s = s == eord ' ' || s == eord '\n' || s == eord '\t' || s == eord '\r'
 
+toplevelEntities :: Iter L.ByteString IO Module
+toplevelEntities = (do
+    x <- toplevelEntity
+    return [x])
+ <|> (terminator *> return [])
+
 toplevelEntity :: Iter L.ByteString IO ToplevelEntity
 toplevelEntity = function
              <|> target
@@ -128,7 +137,7 @@ target :: Iter L.ByteString IO ToplevelEntity
 target = do
     keyword "target"
     nm <- targetName
-    whitespace1
+    whitespace
     keyword "="
     s <- stringLiteral
     return $ Target nm s
@@ -153,10 +162,10 @@ function :: Iter L.ByteString IO ToplevelEntity
 function = do
     keyword "define"
     ty <- llvmType
-    _  <- string "@"
     nm <- L.unpack <$> (string "@" *> while1I isAlphaNumOrUnder)
     whitespace
     args <- parens (argument `sepBy` comma)
+    whitespace
     as   <- many functionAttribute
     bb   <- brackets basicBlock
     return $ Function ty nm args as bb

@@ -7,9 +7,13 @@ import Data.String
   ( fromString
   , IsString
   )
+import Data.List
+  ( intercalate
+  )
 import Data.Monoid
   ( (<>)
   , mempty
+  , mconcat
   , Monoid
   )
 import Data.IterIO
@@ -22,15 +26,25 @@ import qualified Data.ByteString.Lazy.Char8 as L
 import Block
 
 class ToLlvm a where
-    toLlvm :: (Monoid s, IsString s) => a -> s
+    toLlvm :: (Eq s, Monoid s, IsString s) => a -> s
+
+instance ToLlvm ToplevelEntity where
+    toLlvm (Function ret nm args as blk)  = "define " <> fromString ret
+                                        <+> "@" <> fromString nm
+                                         <> "(" <> fromString (intercalate ", " args) <> ")"
+                                        <+> fromString (unwords as)
+                                        <+> "{\n" <> mconcat (map ((<> "\n") . toLlvm) blk) <> "\n}"
+
+    toLlvm (Target nm val)                = "target " <> fromString nm <> " = \"" <> fromString val <> "\""
+
 
 instance ToLlvm Statement where
     toLlvm (Declaration _t _s) = mempty
     toLlvm (Assignment s e)    = "%" <> fromString s <> " = " <> toLlvm e
-    toLlvm (Return s e)        = "ret " <> fromString s <> " " <> toLlvm e
+    toLlvm (Return s e)        = "ret " <> fromString s <+> toLlvm e
     toLlvm (Label s)           = fromString s <> ":"
     toLlvm (Branch s)          = "br " <> "%" <> fromString s
-    toLlvm (BranchCond b t f)  = "br " <> "%" <> fromString b <> " " <> "label " <> fromString t <> ", label " <> fromString f
+    toLlvm (BranchCond b t f)  = "br " <> "%" <> fromString b <+> "label " <> fromString t <> ", label " <> fromString f
     toLlvm (Flush)             = mempty
 
 instance ToLlvm Expr where
@@ -42,5 +56,12 @@ instance ToLlvm Literal where
     toLlvm (LitString s)       = fromString (show s)
     toLlvm (LitInteger x)      = fromString (show x)
 
-printFlow :: Inum Block L.ByteString IO a
+-- Concat with a space between, unless one is empty
+(<+>) :: (Eq s, Monoid s, IsString s) => s -> s -> s
+a <+> b
+  | a == mempty = b
+  | b == mempty = a
+  | otherwise   = a <> " " <> b
+
+printFlow :: Inum Module L.ByteString IO a
 printFlow = mkInum $ (L.unlines . map toLlvm) `fmap` dataI

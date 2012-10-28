@@ -24,13 +24,20 @@ data PassState = S {
   }
 
 -- \ The Constant Propogation pass
-constProp                             :: Inum Block Block IO a
+constProp                             :: Inum Module Module IO a
 constProp                              = statefulPass chunk (S [] [])
 
-chunk                                 :: Iter Block (StateT PassState IO) Block
-chunk                                  = concat `fmap` (dataI >>= mapM stat)
+chunk                                 :: Iter Module (StateT PassState IO) Module
+chunk                                  = dataI >>= mapM toplevelEntity
 
-stat                                  :: Statement -> Iter Block (StateT PassState IO) Block
+toplevelEntity                        :: ToplevelEntity -> Iter Module (StateT PassState IO) ToplevelEntity
+toplevelEntity (Function nm ret args as blk)
+                                       = do
+                                           blk' <- mapM stat blk
+                                           return $ Function nm ret args as (concat blk')
+toplevelEntity x                       = return x
+
+stat                                  :: Statement -> Iter Module (StateT PassState IO) Block
 stat (Assignment nm (ExprConstant x))  = do
                                            addConst nm x
                                            return []
@@ -50,7 +57,7 @@ stat Flush                             = do
                                            return [Assignment nm (ExprConstant lit) | (nm, lit) <- notFlushed st]
 stat x                                 = return [x]
 
-addConst                              :: String -> Literal -> Iter Block (StateT PassState IO) ()
+addConst                              :: String -> Literal -> Iter Module (StateT PassState IO) ()
 addConst nm x                          = modify (\st -> st{
                                            constMap   = (nm, x) : constMap st
                                          , notFlushed = (nm, x) : notFlushed st
