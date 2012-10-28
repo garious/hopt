@@ -124,7 +124,7 @@ isWhite s = s == eord ' ' || s == eord '\n' || s == eord '\t' || s == eord '\r'
 
 toplevelEntities :: Iter L.ByteString IO Module
 toplevelEntities = (do
-    x <- toplevelEntity
+    x <- whitespace *> toplevelEntity
     return [x])
  <|> (terminator *> return [])
 

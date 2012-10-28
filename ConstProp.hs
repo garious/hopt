@@ -46,6 +46,22 @@ stat e@(Assignment nm (ExprVar vNm))   = do
                                            case lookup vNm xs of
                                              Just x  -> stat (Assignment nm (ExprConstant x))
                                              Nothing -> return [e]
+stat (Assignment nm (ExprAdd _ty (ExprConstant (LitInteger i1)) (ExprConstant (LitInteger i2))))
+                                       = do
+                                           addConst nm (LitInteger (i1 + i2))
+                                           return []
+stat e@(Assignment nm (ExprAdd ty (ExprVar vNm) y))
+                                       = do
+                                           xs <- constMap `fmap` get
+                                           case lookup vNm xs of
+                                             Just x  -> stat (Assignment nm (ExprAdd ty (ExprConstant x) y))
+                                             Nothing -> return [e]
+stat e@(Assignment nm (ExprAdd ty y (ExprVar vNm)))
+                                       = do
+                                           xs <- constMap `fmap` get
+                                           case lookup vNm xs of
+                                             Just x  -> stat (Assignment nm (ExprAdd ty y (ExprConstant x)))
+                                             Nothing -> return [e]
 stat e@(Return s (ExprVar vNm))        = do
                                            xs <- constMap `fmap` get
                                            case lookup vNm xs of
