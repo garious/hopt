@@ -7,9 +7,7 @@ module Opt where
 import Data.IterIO
   ( Inum
   , (|.)
-  , mkInum
   , inumNop
-  , dataI
   )
 
 import ConstProp
@@ -21,11 +19,11 @@ import UnassignedVars
 import Block
   ( Block
   )
-import ToLlvm
-  ( toLlvm
-  )
 import LlvmParser
   ( parseFlow
+  )
+import ToLlvm
+  ( printFlow
   )
 
 import qualified Data.ByteString.Lazy.Char8 as L
@@ -38,9 +36,6 @@ optimize = foldr (|.) inumNop . map lookupPass
 
 lookupPass :: String -> Inum Block Block IO a
 lookupPass x = maybe (error x) id (lookup x optPassMap)
-
-printFlow :: Inum Block L.ByteString IO a
-printFlow = mkInum $ (L.unlines . map toLlvm) `fmap` dataI
 
 optPassNames :: [String]
 optPassNames = map fst optPassMap

@@ -12,6 +12,12 @@ import Data.Monoid
   , mempty
   , Monoid
   )
+import Data.IterIO
+  ( Inum
+  , mkInum
+  , dataI
+  )
+import qualified Data.ByteString.Lazy.Char8 as L
 
 import Block
 
@@ -31,3 +37,6 @@ instance ToLlvm Expr where
 instance ToLlvm Literal where
     toLlvm (LitString s)       = fromString (show s)
     toLlvm (LitInteger x)      = fromString (show x)
+
+printFlow :: Inum Block L.ByteString IO a
+printFlow = mkInum $ (L.unlines . map toLlvm) `fmap` dataI

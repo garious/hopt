@@ -3,10 +3,25 @@
 
 module Main where
 
-import Opt(parseAndPrint)
-import Control.Exception(assert)
-import qualified Data.ByteString.Lazy.Char8 as L
+import LlvmParser
+  ( parseFlow
+  )
+import ConstProp
+  ( constProp
+  )
+import ToLlvm
+  ( printFlow
+  )
+import Control.Exception
+  ( assert
+  )
 import Data.IterIO
+  ( (|.)
+  , (|$)
+  , enumPure
+  , pureI
+  )
+import qualified Data.ByteString.Lazy.Char8 as L
 
 main :: IO ()
 main = do
@@ -14,7 +29,7 @@ main = do
 
 test :: L.ByteString -> L.ByteString -> IO ()
 test act ex = do
-    txt <- enumPure act |. parseAndPrint ["constprop"] |$ pureI
+    txt <- enumPure act |. parseFlow |. constProp |. printFlow |$ pureI
     assert (txt == ex) noOp
 
 noOp :: Monad m => m ()
