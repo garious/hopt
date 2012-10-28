@@ -13,6 +13,7 @@ executable hopt
                 , ListLike
                 , mtl
                 , lens
+                , cpphs
 
 Test-Suite ConstPropTest
   type:           exitcode-stdio-1.0
