@@ -19,16 +19,16 @@ The interface to the command-line executable 'hopt' aims to be identical to LLVM
 
 Example usage:
 
- $ echo "
-   define 32 @test() {
-      %1 = add i32 21, 21
-      ret i32 %1
-   }
-   " | hopt -S -constprop
+    $ echo "
+      define 32 @test() {
+         %1 = add i32 21, 21
+         ret i32 %1
+      }
+      " | hopt -S -constprop
 
 Produces:
 
-   define i32 @test() {
-     ret i32 42
-   }
+    define i32 @test() {
+      ret i32 42
+    }
 
