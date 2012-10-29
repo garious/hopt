@@ -68,7 +68,7 @@ mintercalate _ []   = mempty
 mintercalate sep xs = foldr1 (\x y -> x <> sep <> y) xs
 
 phiSource :: (Eq s, Monoid s, IsString s) => (Expr, String) -> s
-phiSource (e, s) = "[" <> toLlvm e <> ", " <> fromString s <> "]"
+phiSource (e, s) = "[" <> toLlvm e <> ", " <> "%" <> fromString s <> "]"
 
 -- Concat with a space between, unless one is empty
 (<+>) :: (Eq s, Monoid s, IsString s) => s -> s -> s
