@@ -12,7 +12,7 @@ executable hopt
                 , iterIO
                 , ListLike
                 , mtl
-                , lens
+                , lens >= 3.0.6
                 , cpphs
 
 Test-Suite ConstPropTest
