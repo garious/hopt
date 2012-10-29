@@ -26,6 +26,7 @@ import Data.IterIO.Parse
   , skipWhileI
   , skipWhile1I
   , sepBy
+  , sepBy1
   )
 import Data.ListLike
   ( singleton
@@ -42,15 +43,43 @@ basicBlock :: Iter L.ByteString IO Block
 basicBlock = concat `fmap` many basicBlock'
 
 basicBlock' :: Iter L.ByteString IO Block
-basicBlock' = whitespace *> (stat <|> flushStat) <* terminator
+basicBlock' = whitespace *> fmap singleton (stat <|> flushStat) <* terminator
          <|> terminator *> return []
 
-stat :: Iter L.ByteString IO Block
+stat :: Iter L.ByteString IO Statement
 stat       = assignStat
          <|> returnStat
+         <|> branchStat
+         <|> branchCondStat
+         <|> labelStat
 
-flushStat :: Iter L.ByteString IO Block
-flushStat = string ":flush" *> return [Flush]
+branchStat :: Iter L.ByteString IO Statement
+branchStat = do
+    keyword "br"
+    keyword "label"
+    Branch <$> identifier
+
+-- br i1 %cond, label %IfEqual, label %IfUnequal
+branchCondStat :: Iter L.ByteString IO Statement
+branchCondStat = do
+    keyword "br"
+    keyword "i1"
+    expr <- (ExprVar `fmap` identifier) <|> (ExprConstant `fmap` boolLit)
+    comma
+    keyword "label"
+    left <- identifier
+    comma
+    keyword "label"
+    right <- identifier
+    return $ BranchCond expr left right
+
+boolLit :: Iter L.ByteString IO Literal
+boolLit = (string "true"  >> return (LitBool True))
+      <|> (string "false" >> return (LitBool False))
+
+
+flushStat :: Iter L.ByteString IO Statement
+flushStat = string ":flush" *> return Flush
          <?> "flush signal"
 
 terminator :: Iter L.ByteString IO ()
@@ -67,18 +96,19 @@ isTerminator s = s == eord '\n'
 comment :: Iter L.ByteString IO L.ByteString
 comment = satisfy (== eord ';') *> whileI (not . isTerminator)
 
-assignStat :: Iter L.ByteString IO Block
-assignStat = singleton <$> (Assignment <$> identifier <*> (token "=" *> expression))
+assignStat :: Iter L.ByteString IO Statement
+assignStat = Assignment <$> identifier <*> (token "=" *> expression)
          <?> "assignment"
 
-returnStat :: Iter L.ByteString IO Block
-returnStat = singleton <$> (Return <$> (keyword "ret" *> llvmType) <*> expression)
+returnStat :: Iter L.ByteString IO Statement
+returnStat = Return <$> (keyword "ret" *> llvmType) <*> expression
          <?> "return statement"
 
 expression :: Iter L.ByteString IO Expr
 expression = ExprVar <$> identifier
          <|> ExprConstant . LitInteger <$> integer
          <|> addExpr
+         <|> phiExpr
          <?> "expression"
 
 addExpr :: Iter L.ByteString IO Expr
@@ -90,11 +120,27 @@ addExpr = do
     e2 <- expression
     return $ ExprAdd ty e1 e2
 
+phiExpr :: Iter L.ByteString IO Expr
+phiExpr = do
+    keyword "phi"
+    ty <- llvmType
+    es <- brackets phiSource `sepBy1` comma
+    return $ ExprPhi ty es
+
+phiSource :: Iter L.ByteString IO (Expr, String)
+phiSource = (,) <$> (expression <* comma) <*> identifier
+
 integer :: Iter L.ByteString IO Integer
 integer = read . L.unpack <$> while1I isNum
 
+globalVar :: Iter L.ByteString IO String
+globalVar = L.unpack <$> (string "@" *> while1I isAlphaNumOrUnder)
+
 identifier :: Iter L.ByteString IO String
 identifier = L.unpack <$> (string "%" *> while1I isAlphaNumOrUnder)
+
+labelStat :: Iter L.ByteString IO Statement
+labelStat = (Label . L.unpack) <$> (while1I isAlphaNumOrUnder <* string ":")
 
 isLetterOrUnder :: (Enum a, Ord a) => a -> Bool
 isLetterOrUnder s = s >= eord 'a' && s <= eord 'z' || s >= eord 'A' && s <= eord 'Z' || s == eord '_'
@@ -162,27 +208,28 @@ function :: Iter L.ByteString IO ToplevelEntity
 function = do
     keyword "define"
     ty <- llvmType
-    nm <- L.unpack <$> (string "@" *> while1I isAlphaNumOrUnder)
+    nm <- globalVar
     whitespace
     args <- parens (argument `sepBy` comma)
     whitespace
     as   <- many functionAttribute
-    bb   <- brackets basicBlock
+    bb   <- braces basicBlock
     return $ Function ty nm args as bb
 
 parens :: Iter L.ByteString IO a -> Iter L.ByteString IO a
 parens p = string "(" *> whitespace *> p <* whitespace <* string ")"
 
+braces :: Iter L.ByteString IO a -> Iter L.ByteString IO a
+braces p = string "{" *> whitespace *> p <* whitespace <* string "}"
+
 brackets :: Iter L.ByteString IO a -> Iter L.ByteString IO a
-brackets p = string "{" *> whitespace *> p <* whitespace <* string "}"
+brackets p = string "[" *> whitespace *> p <* whitespace <* string "]"
 
 argument :: Iter L.ByteString IO String
 argument = do
-    _ty <- llvmType
-    whitespace1
-    nm <- identifier
     whitespace
-    return nm
+    _ty <- llvmType
+    identifier
 
 comma :: Iter L.ByteString IO ()
 comma = whitespace *> string "," *> whitespace

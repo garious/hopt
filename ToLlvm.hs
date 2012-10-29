@@ -48,17 +48,27 @@ instance ToLlvm Statement where
     toLlvm (Return s e)        = "ret " <> fromString s <+> toLlvm e
     toLlvm (Label s)           = fromString s <> ":"
     toLlvm (Branch s)          = "br " <> "%" <> fromString s
-    toLlvm (BranchCond b t f)  = "br " <> "%" <> fromString b <+> "label " <> fromString t <> ", label " <> fromString f
+    toLlvm (BranchCond b t f)  = "br " <> toLlvm b <+> "label " <> fromString t <> ", label " <> fromString f
     toLlvm (Flush)             = mempty
 
 instance ToLlvm Expr where
     toLlvm (ExprConstant lit)  = toLlvm lit
     toLlvm (ExprVar nm)        = "%" <> fromString nm
     toLlvm (ExprAdd ty e1 e2)  = "add " <> fromString ty <> ", " <> toLlvm e1 <> ", " <> toLlvm e2
+    toLlvm (ExprPhi ty es)     = "phi " <> fromString ty <+> mintercalate ", " (map phiSource es)
 
 instance ToLlvm Literal where
     toLlvm (LitString s)       = fromString (show s)
     toLlvm (LitInteger x)      = fromString (show x)
+    toLlvm (LitBool True)      = "true"
+    toLlvm (LitBool False)     = "false"
+
+mintercalate :: (Monoid s, IsString s) => s -> [s] -> s
+mintercalate _ []   = mempty
+mintercalate sep xs = foldr1 (\x y -> x <> sep <> y) xs
+
+phiSource :: (Eq s, Monoid s, IsString s) => (Expr, String) -> s
+phiSource (e, s) = "[" <> toLlvm e <> ", " <> fromString s <> "]"
 
 -- Concat with a space between, unless one is empty
 (<+>) :: (Eq s, Monoid s, IsString s) => s -> s -> s
