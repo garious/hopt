@@ -1,7 +1,7 @@
 Hopt
 ----
 
-![alt text](https://travis-ci.org/garious/hopt.png "Build Status")
+[![Build Status](https://secure.travis-ci.org/garious/hopt.png?branch=master)](http://travis-ci.org/garious/hopt)
 
 Hopt is an experimental compiler for a course project in Compiler Optimizations at the 
 University of California in San Diego.  The goal of hopt is to implement a modular compiler 
