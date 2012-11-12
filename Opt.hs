@@ -13,6 +13,9 @@ import Data.IterIO
 import ConstProp
   ( constProp
   )
+import DeadInstructionElimination
+  ( deadInstructionElimination
+  )
 --import UnassignedVars
 --  ( unassignedVars
 --  )
@@ -45,5 +48,5 @@ optPassNames = map fst optPassMap
 optPassMap :: [(String,  Inum Module Module IO a)]
 optPassMap = [
     ("constprop", constProp)
-  --, ("unassigned", unassignedVars)
+  , ("die",       deadInstructionElimination)
   ]

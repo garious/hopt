@@ -8,9 +8,9 @@ V=Output
 
 all: $V/hopt test
 
-test: $V/ConstPropTest.hs.passed $V/hopt
+test: $V/ConstPropTest.hs.passed $V/DeadInstructionEliminationTest.hs.passed $V/hopt
 
-$V/hopt: OptMain.hs Opt.hs ArgParser.hs LlvmParser.hs ToLlvm.hs Block.hs OptPassUtils.hs ConstProp.hs UnassignedVars.hs
+$V/hopt: OptMain.hs Opt.hs ArgParser.hs LlvmParser.hs ToLlvm.hs Block.hs OptPassUtils.hs ConstProp.hs DeadInstructionElimination.hs
 	@mkdir -p $(@D)
 	ghc --make -Wall $< -outputdir=$V -o $@
 

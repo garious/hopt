@@ -20,8 +20,17 @@ Test-Suite ConstPropTest
   main-is:        ConstPropTest.hs
   GHC-Options:    -Wall -fno-ignore-asserts
   build-depends:  base
-                , bytestring
+                , bytestring >= 0.10.0.1
                 , iterIO
                 , ListLike
                 , mtl
 
+Test-Suite DeadInstructionEliminationTest
+  type:           exitcode-stdio-1.0
+  main-is:        DeadInstructionEliminationTest.hs
+  GHC-Options:    -Wall -fno-ignore-asserts
+  build-depends:  base
+                , bytestring >= 0.10.0.1
+                , iterIO
+                , ListLike
+                , mtl
