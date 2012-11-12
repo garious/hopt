@@ -5,7 +5,7 @@ Cabal-Version:  >= 1.9.2
 Build-Type:     Simple
 
 executable hopt
-  main-is:        OptMain.hs
+  main-is:        HoptMain.hs
   GHC-Options:    -Wall
   build-depends:  base
                 , bytestring
