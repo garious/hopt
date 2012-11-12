@@ -8,6 +8,37 @@ module DeadInstructionElimination where
 --   unreferenced by all later statements.  Unlike the LLVM version,
 --   this version also moves each instruction as closely as possible to
 --   the first instruction that references it.
+--
+--   How it works:
+--
+--   When a definition (i.e. assignment) is parsed, we pull it out of the basic
+--   block until another statement references it.  Then, for each statement, we
+--   lookup all definitions it uses and check for them in our list of
+--   unreferenced definitions.  If we find one, we push the definition back
+--   into the basic block, just before the statement that references it.
+--
+--   For example:
+--
+--      Input         PassState          Output             Comment
+--      --------      ---------          ------             -------
+--      %1 = 5        [%1 = 5]                              %1 may be unreferrenced
+--      %2 = 7        [%1 = 5, %2 = 7]                      %1 & %2 may be unreferrenced
+--      %3 = %1       [%2 = 7, %3 = %1]  [%1 = 5]           %1 is used
+--      ret %3        [%2 = 7]           [%3 = %1, ret %3]  %3 is used, %2 is dropped
+--
+--   Limitations:
+--
+--      1. If there is a chain of unreferenced definitions, this pass will only
+--         remove the first link in the chain.
+--      2. Code size: A redundant definition can be pulled into branch if both
+--         sides reference the definition for the first time.
+--
+--   Hindsight:
+--
+--      This pass is probably more useful in improving spacial locality and
+--      reducing register pressure than removing dead instructions.
+--
+
 
 import Data.IterIO
   ( Iter
@@ -28,14 +59,13 @@ import OptPassUtils
   )
 import Block
 
-data PassState = S {
-    statements   :: [(String, Expr)]
-  , notFlushed :: [(String, Expr)]
-  }
+type PassState = [(String, Expr)]  -- A list of unreferenced instructions.
+                                   -- The String is a variable name, and
+                                   -- the Expr is the value assigned to it.
 
 -- \ The DeadInstructionElimination pass
 deadInstructionElimination            :: Inum Module Module IO a
-deadInstructionElimination             = statefulPass chunk (S [] [])
+deadInstructionElimination             = statefulPass chunk []
 
 chunk                                 :: Iter Module (StateT PassState IO) Module
 chunk                                  = dataI >>= mapM toplevelEntity
@@ -57,8 +87,8 @@ stat s@(Return _ e)                    = do
                                            return $ concat xss ++ [s]
 stat Flush                             = do
                                            st <- get
-                                           put st{notFlushed = []}
-                                           return [Assignment nm e | (nm, e) <- notFlushed st]
+                                           put []
+                                           return $ map (uncurry Assignment) st
 stat x                                 = return [x]
 
 vars                                  :: Expr -> [String]
@@ -68,20 +98,14 @@ vars (ExprConstant _)                  = []
 vars (ExprPhi _ _)                     = []
 
 pushStatement                         :: String -> Expr -> Iter Module (StateT PassState IO) ()
-pushStatement nm x                     = modify (\st -> st{
-                                           statements = (nm, x) : statements st
-                                         , notFlushed = (nm, x) : notFlushed st
-                                         })
+pushStatement nm x                     = modify ((nm, x) :)
 
 popStatement                          :: String -> Iter Module (StateT PassState IO) [Statement]
 popStatement nm                          = do 
-                                             xs <- statements `fmap` get
+                                             xs <- get
                                              case lookup nm xs of
                                                Just x -> do
-                                                 modify (\st -> st{
-                                                   statements = delete (nm,x) xs
-                                                 , notFlushed = delete (nm,x) (notFlushed st)
-                                                 })
+                                                 modify (delete (nm,x))
                                                  return [Assignment nm x]
                                                Nothing -> return []
 
