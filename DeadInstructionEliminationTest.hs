@@ -9,7 +9,7 @@ import LlvmParser
 import DeadInstructionElimination
   ( deadInstructionElimination
   )
-import ToLlvm
+import LlvmPrinter
   ( printFlow
   )
 import Control.Exception

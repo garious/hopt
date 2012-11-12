@@ -1,7 +1,7 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module ToLlvm where
+module LlvmPrinter where
 
 import Data.String
   ( fromString

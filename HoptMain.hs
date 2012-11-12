@@ -14,7 +14,7 @@ import ArgParser
   , optPasses
   , isText
   )
-import Opt
+import Hopt
   ( parseAndPrint
   , optPassNames
   )

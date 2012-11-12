@@ -9,7 +9,7 @@ import LlvmParser
 import ConstProp
   ( constProp
   )
-import ToLlvm
+import LlvmPrinter
   ( printFlow
   )
 import Control.Exception

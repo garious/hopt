@@ -1,6 +1,6 @@
 {-# LANGUAGE Safe #-}
 
-module Opt where
+module Hopt where
 
 
 -- From IterIO package
@@ -16,16 +16,13 @@ import ConstProp
 import DeadInstructionElimination
   ( deadInstructionElimination
   )
---import UnassignedVars
---  ( unassignedVars
---  )
 import Block
   ( Module
   )
 import LlvmParser
   ( parseFlow
   )
-import ToLlvm
+import LlvmPrinter
   ( printFlow
   )
 
