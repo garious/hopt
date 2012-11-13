@@ -63,7 +63,18 @@ expr (ExprAdd ty e1 e2)                = do
                                              (ExprConstant (LitInteger i1), ExprConstant (LitInteger i2))
                                                -> return $ ExprConstant (LitInteger (i1 + i2))
                                              _ -> return $ ExprAdd ty e1' e2'
+expr (ExprPhi ty (x:xs))               = do
+                                           x'  <- phiField x
+                                           xs' <- mapM phiField xs
+                                           return $ if all (== fst x') (map fst xs')
+                                                      then fst x'
+                                                      else ExprPhi ty (x':xs')
 expr e                                 = return e
+
+phiField                              :: (Expr, String) -> Iter Module (StateT PassState IO) (Expr, String)
+phiField (e, lbl)                      = do
+                                           e' <- expr e
+                                           return (e', lbl)
 
 addConst                              :: String -> Literal -> Iter Module (StateT PassState IO) ()
 addConst nm x                          = modify (\st -> st{
