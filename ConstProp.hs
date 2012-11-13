@@ -38,40 +38,32 @@ toplevelEntity (Function nm ret args as blk)
 toplevelEntity x                       = return x
 
 stat                                  :: Statement -> Iter Module (StateT PassState IO) Block
-stat (Assignment nm (ExprConstant x))  = do
-                                           addConst nm x
-                                           return []
-stat e@(Assignment nm (ExprVar vNm))   = do
-                                           xs <- constMap `fmap` get
-                                           case lookup vNm xs of
-                                             Just x  -> stat (Assignment nm (ExprConstant x))
-                                             Nothing -> return [e]
-stat (Assignment nm (ExprAdd _ty (ExprConstant (LitInteger i1)) (ExprConstant (LitInteger i2))))
-                                       = do
-                                           addConst nm (LitInteger (i1 + i2))
-                                           return []
-stat e@(Assignment nm (ExprAdd ty (ExprVar vNm) y))
-                                       = do
-                                           xs <- constMap `fmap` get
-                                           case lookup vNm xs of
-                                             Just x  -> stat (Assignment nm (ExprAdd ty (ExprConstant x) y))
-                                             Nothing -> return [e]
-stat e@(Assignment nm (ExprAdd ty y (ExprVar vNm)))
-                                       = do
-                                           xs <- constMap `fmap` get
-                                           case lookup vNm xs of
-                                             Just x  -> stat (Assignment nm (ExprAdd ty y (ExprConstant x)))
-                                             Nothing -> return [e]
-stat e@(Return s (ExprVar vNm))        = do
-                                           xs <- constMap `fmap` get
-                                           case lookup vNm xs of
-                                             Just x  -> return [Return s (ExprConstant x)]
-                                             Nothing -> return [e]
+stat (Assignment nm e)                 = do
+                                            e' <- expr e
+                                            case e' of
+                                              ExprConstant x -> addConst nm x >> return []
+                                              x              -> return [Assignment nm x]
+stat (Return s e)                      = do
+                                           e' <- expr e
+                                           return [Return s e']
 stat Flush                             = do
                                            st <- get
                                            put st{notFlushed = []}
                                            return [Assignment nm (ExprConstant lit) | (nm, lit) <- notFlushed st]
 stat x                                 = return [x]
+
+expr                                  :: Expr -> Iter Module (StateT PassState IO) Expr
+expr (ExprVar nm)                      = do
+                                           xs <- constMap `fmap` get
+                                           return $ maybe (ExprVar nm) ExprConstant (lookup nm xs)
+expr (ExprAdd ty e1 e2)                = do
+                                           e1' <- expr e1
+                                           e2' <- expr e2
+                                           case (e1', e2') of
+                                             (ExprConstant (LitInteger i1), ExprConstant (LitInteger i2))
+                                               -> return $ ExprConstant (LitInteger (i1 + i2))
+                                             _ -> return $ ExprAdd ty e1' e2'
+expr e                                 = return e
 
 addConst                              :: String -> Literal -> Iter Module (StateT PassState IO) ()
 addConst nm x                          = modify (\st -> st{
