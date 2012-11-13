@@ -65,7 +65,13 @@ stat Flush                             = do
                                            st <- get
                                            put st{notFlushed = []}
                                            return [Assignment nm (ExprConstant lit) | (nm, lit) <- notFlushed st]
-stat x                                 = return [x]
+stat (Branch s)                        = return [Branch s]
+stat (BranchCond e b1 b2)              = do
+                                           e' <- expr e
+                                           return $ case e' of
+                                             ExprConstant (LitBool True)  -> [Branch b1]
+                                             ExprConstant (LitBool False) -> [Branch b2]
+                                             _ -> [BranchCond e' b1 b2]
 
 expr                                  :: Expr -> Iter Module (StateT PassState IO) Expr
 expr (ExprVar nm)                      = do
@@ -84,7 +90,8 @@ expr (ExprPhi ty (x:xs))               = do
                                            return $ if all (== fst x') (map fst xs')
                                                       then fst x'
                                                       else ExprPhi ty (x':xs')
-expr e                                 = return e
+expr (ExprPhi ty [])                   = return $ ExprPhi ty []
+expr (ExprConstant lit)                = return $ ExprConstant lit
 
 phiField                              :: (Expr, String) -> Iter Module (StateT PassState IO) (Expr, String)
 phiField (e, lbl)                      = do

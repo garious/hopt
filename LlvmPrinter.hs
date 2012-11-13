@@ -43,7 +43,6 @@ bbLine s = s <> "\n"
 
 
 instance ToLlvm Statement where
-    toLlvm (Declaration _t _s) = mempty
     toLlvm (Assignment s e)    = "  %" <> fromString s <> " = " <> toLlvm e
     toLlvm (Return s e)        = "  ret " <> fromString s <+> toLlvm e
     toLlvm (Label s)           = fromString s <> ":"

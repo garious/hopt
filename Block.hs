@@ -10,8 +10,7 @@ data ToplevelEntity = Function String String [String] [String] Block
 
 type Block = [Statement]
 
-data Statement = Declaration Type String
-               | Assignment String Expr
+data Statement = Assignment String Expr
                | Return String Expr
                | Label String
                | Branch String
