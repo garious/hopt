@@ -18,14 +18,18 @@ import OptPassUtils
   )
 import Block
 
+type ConstMap = [(String, Literal)]
+
 data PassState = S {
-    constMap   :: [(String, Literal)]
-  , notFlushed :: [(String, Literal)]
+    currLabel   :: String
+  , constMap    :: ConstMap
+  , constMapMap :: [(String, ConstMap)]
+  , notFlushed  :: ConstMap
   }
 
 -- \ The Constant Propogation pass
 constProp                             :: Inum Module Module IO a
-constProp                              = statefulPass chunk (S [] [])
+constProp                              = statefulPass chunk (S "" [] [] [])
 
 chunk                                 :: Iter Module (StateT PassState IO) Module
 chunk                                  = dataI >>= mapM toplevelEntity
@@ -43,6 +47,13 @@ stat (Assignment nm e)                 = do
                                             case e' of
                                               ExprConstant x -> addConst nm x >> return []
                                               x              -> return [Assignment nm x]
+stat (Label s)                         = do
+                                           modify $ \st -> st{
+                                             currLabel = s
+                                           , constMap  = []
+                                           , constMapMap = (currLabel st, constMap st) : constMapMap st
+                                           }
+                                           return [Label s]
 stat (Return s e)                      = do
                                            e' <- expr e
                                            return [Return s e']
@@ -73,12 +84,19 @@ expr e                                 = return e
 
 phiField                              :: (Expr, String) -> Iter Module (StateT PassState IO) (Expr, String)
 phiField (e, lbl)                      = do
-                                           e' <- expr e
-                                           return (e', lbl)
+                                           st <- get
+                                           case lookup lbl (constMapMap st) of
+                                             Just cMap -> do
+                                                put st{constMap = cMap}
+                                                e' <- expr e
+                                                put st
+                                                return (e', lbl)
+                                             Nothing -> do
+                                                return (e, lbl)
 
 addConst                              :: String -> Literal -> Iter Module (StateT PassState IO) ()
-addConst nm x                          = modify (\st -> st{
+addConst nm x                          = modify $ \st -> st{
                                            constMap   = (nm, x) : constMap st
                                          , notFlushed = (nm, x) : notFlushed st
-                                         })
+                                         }
 
