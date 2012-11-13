@@ -29,7 +29,10 @@ data PassState = S {
 
 -- \ The Constant Propogation pass
 constProp                             :: Inum Module Module IO a
-constProp                              = statefulPass chunk (S "" [] [] [])
+constProp                              = statefulPass chunk emptyState
+
+emptyState                            :: PassState
+emptyState                             = S "" [] [] []
 
 chunk                                 :: Iter Module (StateT PassState IO) Module
 chunk                                  = dataI >>= mapM toplevelEntity
@@ -37,6 +40,7 @@ chunk                                  = dataI >>= mapM toplevelEntity
 toplevelEntity                        :: ToplevelEntity -> Iter Module (StateT PassState IO) ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
                                        = do
+                                           put emptyState
                                            blk' <- mapM stat blk
                                            return $ Function nm ret args as (concat blk')
 toplevelEntity x                       = return x

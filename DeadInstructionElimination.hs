@@ -73,6 +73,7 @@ chunk                                  = dataI >>= mapM toplevelEntity
 toplevelEntity                        :: ToplevelEntity -> Iter Module (StateT PassState IO) ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
                                        = do
+                                           put []
                                            blk' <- mapM stat blk
                                            return $ Function nm ret args as (concat blk')
 toplevelEntity x                       = return x
