@@ -14,6 +14,7 @@ executable hopt
                 , mtl
                 , lens >= 3.0.6
                 , cpphs
+                , attoparsec
 
 Test-Suite ConstPropTest
   type:           exitcode-stdio-1.0
@@ -24,6 +25,7 @@ Test-Suite ConstPropTest
                 , iterIO
                 , ListLike
                 , mtl
+                , attoparsec
 
 Test-Suite DeadInstructionEliminationTest
   type:           exitcode-stdio-1.0
@@ -34,3 +36,4 @@ Test-Suite DeadInstructionEliminationTest
                 , iterIO
                 , ListLike
                 , mtl
+                , attoparsec
