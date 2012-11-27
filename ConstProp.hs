@@ -4,13 +4,10 @@
 module ConstProp where
 
 import Data.IterIO
-  ( Iter
-  , Inum
-  , dataI
+  ( Inum
   )
 import Control.Monad.State
-  ( StateT
-  , liftM
+  ( liftM
   , modify
   , get
   , put
@@ -39,8 +36,8 @@ constProp                              = statefulPass chunk emptyState
 emptyState                            :: PassState
 emptyState                             = S "" [] [] []
 
-chunk                                 :: Iter Module (StateT PassState IO) Module
-chunk                                  = dataI >>= mapM toplevelEntity
+chunk                                 :: MonadState PassState m => Module -> m Module
+chunk                                  = mapM toplevelEntity
 
 toplevelEntity                          :: MonadState PassState m => ToplevelEntity -> m ToplevelEntity
 toplevelEntity (Function nm ret args as blk)

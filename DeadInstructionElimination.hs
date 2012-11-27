@@ -42,16 +42,13 @@ module DeadInstructionElimination where
 
 
 import Data.IterIO
-  ( Iter
-  , Inum
-  , dataI
+  ( Inum
   )
 import Data.List
   ( delete
   )
 import Control.Monad.State
-  ( StateT
-  , modify
+  ( modify
   , get
   , put
   )
@@ -71,8 +68,8 @@ type PassState = [(String, Expr)]  -- A list of unreferenced instructions.
 deadInstructionElimination            :: Inum Module Module IO a
 deadInstructionElimination             = statefulPass chunk []
 
-chunk                                 :: Iter Module (StateT PassState IO) Module
-chunk                                  = dataI >>= mapM toplevelEntity
+chunk                                 :: MonadState PassState m => Module -> m Module
+chunk                                  = mapM toplevelEntity
 
 toplevelEntity                        :: MonadState PassState m => ToplevelEntity -> m ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
