@@ -1,4 +1,5 @@
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module DeadInstructionElimination where
 
@@ -54,6 +55,9 @@ import Control.Monad.State
   , get
   , put
   )
+import Control.Monad.State.Class
+  ( MonadState
+  )
 import OptPassUtils
   ( statefulPass
   )
@@ -70,7 +74,7 @@ deadInstructionElimination             = statefulPass chunk []
 chunk                                 :: Iter Module (StateT PassState IO) Module
 chunk                                  = dataI >>= mapM toplevelEntity
 
-toplevelEntity                        :: ToplevelEntity -> Iter Module (StateT PassState IO) ToplevelEntity
+toplevelEntity                        :: MonadState PassState m => ToplevelEntity -> m ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
                                        = do
                                            put []
@@ -78,7 +82,7 @@ toplevelEntity (Function nm ret args as blk)
                                            return $ Function nm ret args as (concat blk')
 toplevelEntity x                       = return x
 
-stat                                  :: Statement -> Iter Module (StateT PassState IO) Block
+stat                                  :: MonadState PassState m => Statement -> m Block
 stat (Assignment nm e)                 = do
                                            xss <- mapM popStatement (vars e)
                                            pushStatement nm e
@@ -98,10 +102,10 @@ vars (ExprAdd _ty e1 e2)               = vars e1 ++ vars e2
 vars (ExprConstant _)                  = []
 vars (ExprPhi _ _)                     = []
 
-pushStatement                         :: String -> Expr -> Iter Module (StateT PassState IO) ()
+pushStatement                         :: MonadState PassState m => String -> Expr -> m ()
 pushStatement nm x                     = modify ((nm, x) :)
 
-popStatement                          :: String -> Iter Module (StateT PassState IO) [Statement]
+popStatement                          :: MonadState PassState m => String -> m [Statement]
 popStatement nm                          = do 
                                              xs <- get
                                              case lookup nm xs of

@@ -1,4 +1,5 @@
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module ConstProp where
 
@@ -9,9 +10,13 @@ import Data.IterIO
   )
 import Control.Monad.State
   ( StateT
+  , liftM
   , modify
   , get
   , put
+  )
+import Control.Monad.State.Class
+  ( MonadState
   )
 import OptPassUtils
   ( statefulPass
@@ -37,7 +42,7 @@ emptyState                             = S "" [] [] []
 chunk                                 :: Iter Module (StateT PassState IO) Module
 chunk                                  = dataI >>= mapM toplevelEntity
 
-toplevelEntity                        :: ToplevelEntity -> Iter Module (StateT PassState IO) ToplevelEntity
+toplevelEntity                          :: MonadState PassState m => ToplevelEntity -> m ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
                                        = do
                                            put emptyState
@@ -45,7 +50,7 @@ toplevelEntity (Function nm ret args as blk)
                                            return $ Function nm ret args as (concat blk')
 toplevelEntity x                       = return x
 
-stat                                  :: Statement -> Iter Module (StateT PassState IO) Block
+stat                                  :: MonadState PassState m => Statement -> m Block
 stat (Assignment nm e)                 = do
                                             e' <- expr e
                                             case e' of
@@ -73,9 +78,9 @@ stat (BranchCond e b1 b2)              = do
                                              ExprConstant (LitBool False) -> [Branch b2]
                                              _ -> [BranchCond e' b1 b2]
 
-expr                                  :: Expr -> Iter Module (StateT PassState IO) Expr
+expr                                  :: MonadState PassState m => Expr -> m Expr
 expr (ExprVar nm)                      = do
-                                           xs <- constMap `fmap` get
+                                           xs <- liftM constMap get
                                            return $ maybe (ExprVar nm) ExprConstant (lookup nm xs)
 expr (ExprAdd ty e1 e2)                = do
                                            e1' <- expr e1
@@ -93,7 +98,7 @@ expr (ExprPhi ty (x:xs))               = do
 expr (ExprPhi ty [])                   = return $ ExprPhi ty []
 expr (ExprConstant lit)                = return $ ExprConstant lit
 
-phiField                              :: (Expr, String) -> Iter Module (StateT PassState IO) (Expr, String)
+phiField                              :: MonadState PassState m => (Expr, String) -> m (Expr, String)
 phiField (e, lbl)                      = do
                                            st <- get
                                            case lookup lbl (constMapMap st) of
@@ -105,7 +110,7 @@ phiField (e, lbl)                      = do
                                              Nothing -> do
                                                 return (e, lbl)
 
-addConst                              :: String -> Literal -> Iter Module (StateT PassState IO) ()
+addConst                              :: MonadState PassState m => String -> Literal -> m ()
 addConst nm x                          = modify $ \st -> st{
                                            constMap   = (nm, x) : constMap st
                                          , notFlushed = (nm, x) : notFlushed st
