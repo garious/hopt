@@ -11,10 +11,6 @@ import Data.IterIO
 import Data.IterIO.Parse
   ( (<|>) -- Alternative
   , (<?>) -- Add a name
-  , (<*>) -- Apply
-  , (<$>) -- Apply pure
-  , (<*)  -- Apply but return the left
-  , (*>)  -- Apply but return the right
   , string
   , many
   , satisfy
@@ -28,6 +24,12 @@ import Data.IterIO.Parse
   , sepBy
   , sepBy1
   )
+import Control.Applicative
+  ( (<*>) -- Apply
+  , (<$>) -- Apply pure
+  , (<*)  -- Apply but return the left
+  , (*>)  -- Apply but return the right
+  )
 import Data.ListLike
   ( singleton
   )
@@ -40,10 +42,10 @@ parseFlow :: Inum L.ByteString Module IO a
 parseFlow = mkInum toplevelEntities
 
 basicBlock :: Iter L.ByteString IO Block
-basicBlock = concat `fmap` many basicBlock'
+basicBlock = concat <$> many basicBlock'
 
 basicBlock' :: Iter L.ByteString IO Block
-basicBlock' = whitespace *> fmap singleton (stat <|> flushStat) <* terminator
+basicBlock' = singleton <$> (whitespace *> (stat <|> flushStat) <* terminator)
          <|> terminator *> return []
 
 stat :: Iter L.ByteString IO Statement
@@ -64,7 +66,7 @@ branchCondStat :: Iter L.ByteString IO Statement
 branchCondStat = do
     keyword "br"
     keyword "i1"
-    expr <- (ExprVar `fmap` identifier) <|> (ExprConstant `fmap` boolLit)
+    expr <- (ExprVar <$> identifier) <|> (ExprConstant <$> boolLit)
     comma
     keyword "label"
     left <- identifier
@@ -189,8 +191,7 @@ target = do
     return $ Target nm s
 
 targetName :: Iter L.ByteString IO String
-targetName = fmap L.unpack $ string "datalayout"
-                         <|> string "triple"
+targetName = L.unpack <$> (string "datalayout" <|> string "triple")
 
 stringLiteral :: Iter L.ByteString IO String
 stringLiteral = do
@@ -237,21 +238,22 @@ comma = whitespace *> string "," *> whitespace
 llvmType :: Iter L.ByteString IO String
 llvmType = do
     ty  <- intType
-    ptr <- fmap L.unpack (string "*") <|> return ""
+    ptr <- (L.unpack <$> string "*") <|> return ""
     whitespace1
     return $ ty ++ ptr
 
 intType :: Iter L.ByteString IO String
-intType = fmap L.unpack $
+intType = L.unpack <$> (
                     string "i1"
                 <|> string "i8"
                 <|> string "i16"
                 <|> string "i32"
                 <|> string "i64"
                 <|> string "i128"
+                )
 
 functionAttribute :: Iter L.ByteString IO String
-functionAttribute = fmap L.unpack $
+functionAttribute = L.unpack <$> (
                     string "address_safety"
                 <|> string "alignstack"
                 <|> string "alwaysinline"
@@ -270,4 +272,5 @@ functionAttribute = fmap L.unpack $
                 <|> string "ssp"
                 <|> string "sspreq"
                 <|> string "uwtable"
+                )
 
