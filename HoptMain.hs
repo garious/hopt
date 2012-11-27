@@ -43,6 +43,7 @@ import qualified Data.ByteString.Lazy.Char8 as L
 main :: IO ()
 main = do
     xs <- getArgs 
+    print $ parseArguments optPassNames (unwords xs)
     compile $ parseArguments optPassNames (unwords xs)
 
 compile :: Cfg -> IO ()

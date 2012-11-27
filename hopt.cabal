@@ -15,6 +15,7 @@ executable hopt
                 , lens >= 3.0.6
                 , cpphs
                 , attoparsec
+                , parsec
 
 Test-Suite ConstPropTest
   type:           exitcode-stdio-1.0
