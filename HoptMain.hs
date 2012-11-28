@@ -7,7 +7,9 @@ import System.Environment
   )
 import ArgParser
   ( parseArguments
-  , Cfg
+  )
+import ArgData
+  ( Cfg
   , optPasses
   , inFile
   , outFile
@@ -43,8 +45,9 @@ import qualified Data.ByteString.Lazy.Char8 as L
 main :: IO ()
 main = do
     xs <- getArgs 
-    print $ parseArguments optPassNames (unwords xs)
-    compile $ parseArguments optPassNames (unwords xs)
+    case parseArguments optPassNames (unwords xs) of
+      Left err  -> error (show err)
+      Right cfg -> compile cfg
 
 compile :: Cfg -> IO ()
 compile cfg

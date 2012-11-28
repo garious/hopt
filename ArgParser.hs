@@ -1,12 +1,7 @@
-{-# LANGUAGE Trustworthy #-}  -- Can't have both Safe Haskell and Template Haskell
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE Safe #-}
 
 module ArgParser where
 
--- From lens package
-import Control.Lens.TH
-  ( makeLenses
-  )
 import Control.Lens.Setter
   ( (%=)   -- modify a lens from a monad
   , (.=)   -- assign a lens from a monad
@@ -14,8 +9,7 @@ import Control.Lens.Setter
 
 -- From mtl package
 import Control.Monad.State
-  ( mzero
-  , execState
+  ( runState
   )
 
 import Control.Applicative
@@ -23,45 +17,45 @@ import Control.Applicative
   , (*>)
   , (<$>)
   , (<*>)
+  , (<|>)
   )
 import Text.Parsec
   ( string
-  , (<|>)
+  , (<?>)
   , skipMany
   , satisfy
   , eof
   , many
   , many1
+  , spaces
   , runParserT
   , try
+  , unexpected
+  , ParseError
   )
-
-data Cfg = Cfg {
-    _optPasses  :: [String]
-  , _inFile     :: FilePath
-  , _outFile    :: FilePath
-  , _isText     :: Bool      -- Output as text, not bitcode
-  } deriving (Show, Eq)
-
--- Use Template Haskell to generate getters and setters
--- for each field in Cfg
-makeLenses ''Cfg
+import ArgData
 
 -- By default, do no optimizations on stdin, compile to bitcode and output to stdout
 defaultCfg :: Cfg
 defaultCfg = Cfg [] "-" "-" False
 
-parseArguments :: [String] -> String -> Cfg
-parseArguments optPassNames = flip execState defaultCfg . argParser
+parseArguments :: [String] -> String -> Either ParseError Cfg
+parseArguments optPassNames str = const cfg `fmap` result
   where
-    argParser s = runParserT arguments () "" s
+    (result, cfg) = runState (argParser str) defaultCfg
+
+    argParser s = runParserT arguments () "argument list" s
 
     arguments = skipMany argument <* eof
 
-    argument = try textOutputFlag
-           <|> try outputFileFlag
-           <|> try (optPassFlag optPassNames)
+    argument = optionArg
+           <|> optPassFlag optPassNames
            <|> inputFileArg
+           <?> "argument"
+
+    optionArg = textOutputFlag
+            <|> outputFileFlag
+            <?> "option"
 
     textOutputFlag = do
         flag "S"
@@ -75,18 +69,18 @@ parseArguments optPassNames = flip execState defaultCfg . argParser
     inputFileArg = do
         s <- argArg
         inFile .= s
+      <?> "input file"
     
     optPassFlag nms = do
         p <- string "-" *> flagArg
         if elem p nms
           then optPasses %= (++ [p])
-          else mzero
+          else unexpected $ "'" ++ p ++ "'.  Expected the name of a known optimization pass."
+      <?> "name of optimization pass"
     
-    flag s = string "-" *> string s *> skipSpace
+    flag s = try (string "-" *> string s) *> spaces <?> "flag"
     
-    skipSpace = skipMany (satisfy (\c -> c == ' ' || c == '\t'))
+    argArg = (:) <$> satisfy (/= '-') <*> many (satisfy (/= ' ')) <* spaces <?> "optimization flag"
     
-    argArg = (:) <$> satisfy (/= '-') <*> many (satisfy (/= ' ')) <* skipSpace
-    
-    flagArg = many1 (satisfy (/= ' ')) <* skipSpace
+    flagArg = many1 (satisfy (/= ' ')) <* spaces <?> "flag argument"
 
