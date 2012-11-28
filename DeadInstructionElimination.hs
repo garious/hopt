@@ -58,6 +58,9 @@ import Control.Monad.State.Class
 import OptPassUtils
   ( statefulPass
   )
+import Control.Lens
+  ( universe
+  )
 import Block
 
 type PassState = [(String, Expr)]  -- A list of unreferenced instructions.
@@ -94,10 +97,11 @@ stat Flush                             = do
 stat x                                 = return [x]
 
 vars                                  :: Expr -> [String]
-vars (ExprVar nm)                      = [nm]
-vars (ExprAdd _ty e1 e2)               = vars e1 ++ vars e2
-vars (ExprConstant _)                  = []
-vars (ExprPhi _ _)                     = []
+vars                                   = concatMap vars' . universe
+
+vars'                                 :: Expr -> [String]
+vars' (ExprVar nm)                     = [nm]
+vars' _                                = []
 
 pushStatement                         :: MonadState PassState m => String -> Expr -> m ()
 pushStatement nm x                     = modify ((nm, x) :)

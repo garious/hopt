@@ -11,7 +11,7 @@ executable hopt
                 , bytestring
                 , iterIO
                 , mtl
-                , lens >= 3.0.6
+                , lens >= 3.6
                 , cpphs
                 , attoparsec
                 , parsec
@@ -22,6 +22,7 @@ Test-Suite ConstPropTest
   GHC-Options:    -Wall -fno-ignore-asserts
   build-depends:  base
                 , bytestring >= 0.10.0.1
+                , lens >= 3.6
                 , iterIO
                 , mtl
                 , attoparsec
@@ -32,6 +33,7 @@ Test-Suite DeadInstructionEliminationTest
   GHC-Options:    -Wall -fno-ignore-asserts
   build-depends:  base
                 , bytestring >= 0.10.0.1
+                , lens >= 3.6
                 , iterIO
                 , mtl
                 , attoparsec

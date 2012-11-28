@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module ConstProp where
@@ -17,6 +17,9 @@ import Control.Monad.State.Class
   )
 import OptPassUtils
   ( statefulPass
+  )
+import Control.Lens.Plated
+  ( transformM
   )
 import Block
 
@@ -76,24 +79,21 @@ stat (BranchCond e b1 b2)              = do
                                              _ -> [BranchCond e' b1 b2]
 
 expr                                  :: MonadState PassState m => Expr -> m Expr
-expr (ExprVar nm)                      = do
+expr                                   = transformM expr'
+
+expr'                                 :: MonadState PassState m => Expr -> m Expr
+expr' (ExprVar nm)                     = do
                                            xs <- liftM constMap get
                                            return $ maybe (ExprVar nm) ExprConstant (lookup nm xs)
-expr (ExprAdd ty e1 e2)                = do
-                                           e1' <- expr e1
-                                           e2' <- expr e2
-                                           case (e1', e2') of
-                                             (ExprConstant (LitInteger i1), ExprConstant (LitInteger i2))
-                                               -> return $ ExprConstant (LitInteger (i1 + i2))
-                                             _ -> return $ ExprAdd ty e1' e2'
-expr (ExprPhi ty (x:xs))               = do
+expr' (ExprAdd _ty (ExprConstant (LitInteger i1)) (ExprConstant (LitInteger i2)))
+                                       = return $ ExprConstant (LitInteger (i1 + i2))
+expr' (ExprPhi ty (x:xs))              = do
                                            x'  <- phiField x
                                            xs' <- mapM phiField xs
                                            return $ if all (== fst x') (map fst xs')
                                                       then fst x'
                                                       else ExprPhi ty (x':xs')
-expr (ExprPhi ty [])                   = return $ ExprPhi ty []
-expr (ExprConstant lit)                = return $ ExprConstant lit
+expr' e                                = return e
 
 phiField                              :: MonadState PassState m => (Expr, String) -> m (Expr, String)
 phiField (e, lbl)                      = do
