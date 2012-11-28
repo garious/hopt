@@ -10,7 +10,6 @@ executable hopt
   build-depends:  base
                 , bytestring
                 , iterIO
-                , ListLike
                 , mtl
                 , lens >= 3.0.6
                 , cpphs
@@ -24,7 +23,6 @@ Test-Suite ConstPropTest
   build-depends:  base
                 , bytestring >= 0.10.0.1
                 , iterIO
-                , ListLike
                 , mtl
                 , attoparsec
 
@@ -35,6 +33,5 @@ Test-Suite DeadInstructionEliminationTest
   build-depends:  base
                 , bytestring >= 0.10.0.1
                 , iterIO
-                , ListLike
                 , mtl
                 , attoparsec
