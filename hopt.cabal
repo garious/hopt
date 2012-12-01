@@ -16,24 +16,10 @@ executable hopt
                 , attoparsec
                 , parsec
 
-Test-Suite ConstPropTest
+Test-Suite Test
   type:           exitcode-stdio-1.0
-  main-is:        ConstPropTest.hs
+  main-is:        Test.hs
   GHC-Options:    -Wall -fno-ignore-asserts
   build-depends:  base
-                , bytestring >= 0.10.0.1
-                , lens >= 3.6
-                , iterIO
-                , mtl
-                , attoparsec
+                , process
 
-Test-Suite DeadInstructionEliminationTest
-  type:           exitcode-stdio-1.0
-  main-is:        DeadInstructionEliminationTest.hs
-  GHC-Options:    -Wall -fno-ignore-asserts
-  build-depends:  base
-                , bytestring >= 0.10.0.1
-                , lens >= 3.6
-                , iterIO
-                , mtl
-                , attoparsec
