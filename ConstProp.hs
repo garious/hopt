@@ -3,9 +3,6 @@
 
 module ConstProp where
 
-import Data.IterIO
-  ( Inum
-  )
 import Control.Monad.State
   ( liftM
   , modify
@@ -14,9 +11,6 @@ import Control.Monad.State
   )
 import Control.Monad.State.Class
   ( MonadState
-  )
-import OptPassUtils
-  ( statefulPass
   )
 import Control.Lens.Plated
   ( transformM
@@ -31,10 +25,6 @@ data PassState = S {
   , constMapMap :: [(String, ConstMap)]
   , notFlushed  :: ConstMap
   }
-
--- \ The Constant Propogation pass
-constProp                             :: Inum Module Module IO a
-constProp                              = statefulPass chunk emptyState
 
 emptyState                            :: PassState
 emptyState                             = S "" [] [] []

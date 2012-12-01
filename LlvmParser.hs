@@ -3,11 +3,6 @@
 
 module LlvmParser where
 
--- From IterIO package
-import Data.IterIO
-  ( Inum
-  , mkInum
-  )
 import Data.Attoparsec.ByteString.Lazy
   ( (<?>) -- Add a name
   , string
@@ -30,21 +25,14 @@ import Control.Applicative
   , many
   , Alternative
   )
-import Data.IterIO.Atto
-  ( atto
-  )
 import Data.Char
   ( ord
   )
 
 import Block
 
-import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.ByteString.Char8 as BC
 
-
-parseFlow :: Inum L.ByteString Module IO a
-parseFlow = mkInum $ atto toplevelEntities
 
 basicBlock :: Parser Block
 basicBlock = concat <$> many basicBlock'

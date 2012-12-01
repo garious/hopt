@@ -16,13 +16,6 @@ import Data.Monoid
   , mconcat
   , Monoid
   )
-import Data.IterIO
-  ( Inum
-  , mkInum
-  , dataI
-  )
-import qualified Data.ByteString.Lazy.Char8 as L
-
 import Block
 
 class ToLlvm a where
@@ -76,5 +69,3 @@ a <+> b
   | b == mempty = a
   | otherwise   = a <> " " <> b
 
-printFlow :: Inum Module L.ByteString IO a
-printFlow = mkInum $ (L.unlines . map toLlvm) `fmap` dataI
