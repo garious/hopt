@@ -20,12 +20,12 @@ module DeadInstructionElimination where
 --
 --   For example:
 --
---      Input         PassState          Output             Comment
---      --------      ---------          ------             -------
---      %1 = 5        [%1 = 5]                              %1 may be unreferrenced
---      %2 = 7        [%1 = 5, %2 = 7]                      %1 & %2 may be unreferrenced
---      %3 = %1       [%2 = 7, %3 = %1]  [%1 = 5]           %1 is used
---      ret %3        [%2 = 7]           [%3 = %1, ret %3]  %3 is used, %2 is dropped
+--   Line  Input         PassState          Output             Comment
+--   ----  --------      ---------          ------             -------
+--     1   %1 = 5        [%1 = 5]                              %1 may be unreferrenced
+--     2   %2 = 7        [%1 = 5, %2 = 7]                      %1 & %2 may be unreferrenced
+--     3   %3 = %1       [%2 = 7, %3 = %1]  [%1 = 5]           %1 is used
+--     4   ret %3        [%2 = 7]           [%3 = %1, ret %3]  %3 is used, %2 is dropped
 --
 --   Limitations:
 --
