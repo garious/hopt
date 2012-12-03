@@ -39,13 +39,13 @@ instance ToLlvm Statement where
     toLlvm (Assignment s e)    = "  %" <> fromString s <> " = " <> toLlvm e
     toLlvm (Return s e)        = "  ret " <> fromString s <+> toLlvm e
     toLlvm (Label s)           = fromString s <> ":"
-    toLlvm (Branch s)          = "  br " <> "%" <> fromString s
-    toLlvm (BranchCond b t f)  = "  br " <> toLlvm b <+> "label " <> fromString t <> ", label " <> fromString f
+    toLlvm (Branch s)          = "  br " <> identifier s
+    toLlvm (BranchCond b t f)  = "  br " <> toLlvm b <+> "label " <> identifier t <> ", label " <> identifier f
     toLlvm (Flush)             = mempty
 
 instance ToLlvm Expr where
     toLlvm (ExprConstant lit)  = toLlvm lit
-    toLlvm (ExprVar nm)        = "%" <> fromString nm
+    toLlvm (ExprVar nm)        = identifier nm
     toLlvm (ExprAdd ty e1 e2)  = "add " <> fromString ty <+> toLlvm e1 <> ", " <> toLlvm e2
     toLlvm (ExprPhi ty es)     = "phi " <> fromString ty <+> mintercalate ", " (map phiSource es)
 
@@ -54,6 +54,9 @@ instance ToLlvm Literal where
     toLlvm (LitInteger x)      = fromString (show x)
     toLlvm (LitBool True)      = "true"
     toLlvm (LitBool False)     = "false"
+
+identifier :: (Monoid s, IsString s) => String -> s
+identifier s = "%" <> fromString s
 
 mintercalate :: (Monoid s, IsString s) => s -> [s] -> s
 mintercalate _ []   = mempty
