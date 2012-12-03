@@ -26,6 +26,7 @@ import Control.Monad.State
   ( StateT
   )
 import qualified ConstProp as CP
+import qualified CopyProp as CopyProp
 import qualified DeadInstructionElimination as DIE
 import Block
   ( Module
@@ -68,11 +69,15 @@ optPassNames = map fst optPassMap
 optPassMap :: [(String,  Inum Module Module IO a)]
 optPassMap = [
     ("constprop", constProp)
+  , ("copyprop", copyProp)
   , ("die",       deadInstructionElimination)
   ]
 
 constProp :: Inum Module Module IO a
 constProp = statefulPass CP.chunk CP.emptyState
+
+copyProp :: Inum Module Module IO a
+copyProp = statefulPass CopyProp.chunk CopyProp.emptyState
 
 deadInstructionElimination :: Inum Module Module IO a
 deadInstructionElimination = statefulPass DIE.chunk DIE.emptyState

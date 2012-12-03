@@ -24,6 +24,7 @@ tests :: [IO Bool]
 tests = [
     runHopt "ConstPropTestTrivial"                  ".ll" ["-constprop"]
   , runHopt "ConstPropTestBranch"                   ".ll" ["-constprop"]
+  , runHopt "CopyPropTestTrivial"                   ".ll" ["-copyprop"]
   , runHopt "DeadInstructionEliminationTestTrivial" ".ll" ["-die"]
   ]
 
