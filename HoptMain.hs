@@ -54,7 +54,7 @@ compile cfg
   | cfg^.isText == False = error "Write bitcode?  What am I, a compiler?  Please come back with -S."
   | otherwise = do
     out <- output $ cfg^.outFile
-    input (cfg^.inFile) |. parseAndPrint (cfg^.optPasses) |$ out
+    input (cfg^.inFile) |. parseAndPrint (cfg^.inFile) (cfg^.optPasses) |$ out
 
 input :: FilePath -> Onum L.ByteString IO a
 input "-" = enumStdin

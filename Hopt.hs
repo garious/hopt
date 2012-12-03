@@ -39,14 +39,20 @@ import LlvmPrinter
 
 import qualified Data.ByteString.Lazy.Char8 as L
 
-parseAndPrint :: [String] -> Inum L.ByteString L.ByteString IO a
-parseAndPrint xs = parseFlow |. optimize xs |. printFlow
+parseAndPrint :: FilePath -> [String] -> Inum L.ByteString L.ByteString IO a
+parseAndPrint p xs = parseFlow |. optimize xs |. printFlow p
 
 parseFlow :: Inum L.ByteString Module IO a
 parseFlow = mkInum $ atto toplevelEntities
 
-printFlow :: Inum Module L.ByteString IO a
-printFlow = mkInum $ (L.unlines . map toLlvm) `fmap` dataI
+printFlow :: FilePath -> Inum Module L.ByteString IO a
+printFlow p = mkInum $ (L.unlines . (moduleId p :) . map toLlvm) `fmap` dataI
+
+moduleId :: FilePath -> L.ByteString
+moduleId p = L.pack $ "; ModuleID = '" ++ name p ++ "'"
+  where
+    name "-" = "<stdin>"
+    name x   = x
 
 optimize :: [String] -> Inum Module Module IO a
 optimize = foldr (|.) inumNop . map lookupPass

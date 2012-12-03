@@ -22,7 +22,7 @@ class ToLlvm a where
     toLlvm :: (Eq s, Monoid s, IsString s) => a -> s
 
 instance ToLlvm ToplevelEntity where
-    toLlvm (Function ret nm args as blk)  = "define " <> fromString ret
+    toLlvm (Function ret nm args as blk)  = "\ndefine " <> fromString ret
                                         <+> "@" <> fromString nm
                                          <> "(" <> fromString (intercalate ", " args) <> ")"
                                         <+> fromString (unwords as)
@@ -38,7 +38,7 @@ bbLine s = s <> "\n"
 instance ToLlvm Statement where
     toLlvm (Assignment s e)    = "  %" <> fromString s <> " = " <> toLlvm e
     toLlvm (Return s e)        = "  ret " <> fromString s <+> toLlvm e
-    toLlvm (Label s)           = fromString s <> ":"
+    toLlvm (Label s)           = "\n" <> fromString s <> ":"
     toLlvm (Branch s)          = "  br " <> identifier s
     toLlvm (BranchCond b t f)  = "  br " <> toLlvm b <+> "label " <> identifier t <> ", label " <> identifier f
     toLlvm (Flush)             = mempty
