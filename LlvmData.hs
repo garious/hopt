@@ -1,7 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module Block where
+module LlvmData where
 
 import Control.Lens.Plated
   ( Plated

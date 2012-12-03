@@ -16,7 +16,7 @@ import Data.Monoid
   , mconcat
   , Monoid
   )
-import Block
+import LlvmData
 
 class ToLlvm a where
     toLlvm :: (Eq s, Monoid s, IsString s) => a -> s

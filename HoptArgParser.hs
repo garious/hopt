@@ -2,7 +2,7 @@
 -- this module Trustworthy until Travis-CI upgrades.
 {-# LANGUAGE Trustworthy #-}
 
-module ArgParser where
+module HoptArgParser where
 
 import Control.Lens.Setter
   ( (%=)   -- modify a lens from a monad
@@ -35,7 +35,7 @@ import Text.Parsec
   , unexpected
   , ParseError
   )
-import ArgData
+import HoptArgData
 
 -- By default, do no optimizations on stdin, compile to bitcode and output to stdout
 defaultCfg :: Cfg

@@ -1,7 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module ArgData where
+module HoptArgData where
 
 -- From lens package
 import Control.Lens.TH

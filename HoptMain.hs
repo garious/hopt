@@ -5,10 +5,10 @@ module Main where
 import System.Environment
   ( getArgs
   )
-import ArgParser
+import HoptArgParser
   ( parseArguments
   )
-import ArgData
+import HoptArgData
   ( Cfg
   , optPasses
   , inFile

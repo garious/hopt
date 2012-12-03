@@ -20,7 +20,7 @@ import Control.Monad.State.Class
 import Control.Lens.Plated
   ( transformM
   )
-import Block
+import LlvmData
 
 type ConstMap = [(String, Literal)]
 

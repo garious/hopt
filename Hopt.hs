@@ -28,7 +28,7 @@ import Control.Monad.State
 import qualified ConstProp as CP
 import qualified CopyProp as CopyProp
 import qualified DeadInstructionElimination as DIE
-import Block
+import LlvmData
   ( Module
   )
 import LlvmParser

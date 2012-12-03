@@ -18,7 +18,7 @@ import Control.Monad.State.Class
 import Control.Lens
   ( transformM
   )
-import Block
+import LlvmData
 
 type PassState = [(String, String)] -- A list of variable aliases.
 

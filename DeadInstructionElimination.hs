@@ -55,7 +55,7 @@ import Control.Monad.State.Class
 import Control.Lens
   ( universe
   )
-import Block
+import LlvmData
 
 type PassState = [(String, Expr)]  -- A list of unreferenced instructions.
                                    -- The String is a variable name, and

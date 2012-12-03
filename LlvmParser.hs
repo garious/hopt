@@ -29,7 +29,7 @@ import Data.Char
   ( ord
   )
 
-import Block
+import LlvmData
 
 import qualified Data.ByteString.Char8 as BC
 
