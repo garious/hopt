@@ -1,7 +1,7 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module DeadInstructionElimination where
+module Transforms.DeadInstructionElimination where
 
 -- | Dead Instruction Elimination
 --

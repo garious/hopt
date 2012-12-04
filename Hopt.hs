@@ -25,9 +25,9 @@ import Data.IterIO.Atto
 import Control.Monad.State
   ( StateT
   )
-import qualified ConstProp as ConstProp
-import qualified CopyProp as CopyProp
-import qualified DeadInstructionElimination as DIE
+import qualified Transforms.ConstProp as ConstProp
+import qualified Transforms.CopyProp as CopyProp
+import qualified Transforms.DeadInstructionElimination as DIE
 import LlvmData
   ( Module
   )

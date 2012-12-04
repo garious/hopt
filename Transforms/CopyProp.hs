@@ -1,7 +1,7 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module CopyProp where
+module Transforms.CopyProp where
 
 -- | Copy Propagation
 --

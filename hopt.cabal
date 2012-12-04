@@ -22,4 +22,5 @@ Test-Suite Test
   GHC-Options:    -Wall -fno-ignore-asserts
   build-depends:  base
                 , process
+                , directory
 

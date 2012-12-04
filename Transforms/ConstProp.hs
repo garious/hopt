@@ -6,7 +6,7 @@
 --   This optimization pass evaluates constant expressions, and
 --   removes assignments where the right-hand side is a constant.
 
-module ConstProp where
+module Transforms.ConstProp where
 
 import Control.Monad.State
   ( liftM

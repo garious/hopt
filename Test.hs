@@ -10,9 +10,13 @@ import System.IO
   ( stderr
   , hPutStrLn
   )
+import System.Directory
+  ( setCurrentDirectory
+  )
 
 main :: IO ()
 main = do
+    setCurrentDirectory "Transforms"
     bs <- sequence tests
     if and bs
       then do
@@ -44,4 +48,4 @@ runHopt nm ext optPasses = do
         return True
 
 hoptPath :: FilePath
-hoptPath = "dist/build/hopt/hopt"
+hoptPath = "../dist/build/hopt/hopt"
