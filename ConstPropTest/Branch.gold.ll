@@ -1,4 +1,4 @@
-; ModuleID = 'ConstPropTestBranch.ll'
+; ModuleID = 'ConstPropTest/Branch.ll'
 
 define i32 @test1(B) {
   br %B label %BB1, label %BB2

@@ -1,4 +1,4 @@
-; ModuleID = 'CopyPropTestTrivial.ll'
+; ModuleID = 'CopyPropTest/Basic.ll'
 
 define i32 @a() {
   %1 = add i32 1, 1

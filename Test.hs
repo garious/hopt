@@ -22,10 +22,10 @@ main = do
 
 tests :: [IO Bool]
 tests = [
-    runHopt "ConstPropTestTrivial"                  ".ll" ["-constprop"]
-  , runHopt "ConstPropTestBranch"                   ".ll" ["-constprop"]
-  , runHopt "CopyPropTestTrivial"                   ".ll" ["-copyprop"]
-  , runHopt "DeadInstructionEliminationTestTrivial" ".ll" ["-die"]
+    runHopt "ConstPropTest/Basic"                  ".ll" ["-constprop"]
+  , runHopt "ConstPropTest/Branch"                 ".ll" ["-constprop"]
+  , runHopt "CopyPropTest/Basic"                   ".ll" ["-copyprop"]
+  , runHopt "DeadInstructionEliminationTest/Basic" ".ll" ["-die"]
   ]
 
 runHopt :: String -> String -> [String] -> IO Bool
