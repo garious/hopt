@@ -31,6 +31,9 @@ data PassState = S {
   , notFlushed  :: ConstMap
   }
 
+name                                  :: String
+name                                   = "constprop"
+
 emptyState                            :: PassState
 emptyState                             = S "" [] [] []
 

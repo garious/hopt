@@ -25,7 +25,7 @@ import Data.IterIO.Atto
 import Control.Monad.State
   ( StateT
   )
-import qualified ConstProp as CP
+import qualified ConstProp as ConstProp
 import qualified CopyProp as CopyProp
 import qualified DeadInstructionElimination as DIE
 import LlvmData
@@ -68,21 +68,10 @@ optPassNames = map fst optPassMap
 --   optimization pass
 optPassMap :: [(String,  Inum Module Module IO a)]
 optPassMap = [
-    ("constprop", constProp)
-  , ("copyprop", copyProp)
-  , ("die",       deadInstructionElimination)
+    (ConstProp.name, statefulPass ConstProp.chunk ConstProp.emptyState)
+  , ( CopyProp.name, statefulPass  CopyProp.chunk  CopyProp.emptyState)
+  , (      DIE.name, statefulPass       DIE.chunk       DIE.emptyState)
   ]
-
-constProp :: Inum Module Module IO a
-constProp = statefulPass CP.chunk CP.emptyState
-
-copyProp :: Inum Module Module IO a
-copyProp = statefulPass CopyProp.chunk CopyProp.emptyState
-
-deadInstructionElimination :: Inum Module Module IO a
-deadInstructionElimination = statefulPass DIE.chunk DIE.emptyState
-
-
 
 statefulPass :: (Monad m, ChunkData tOut) => (tOut -> Iter tOut (StateT s m) tOut) -> s -> Inum tOut tOut m a
 statefulPass iter = mkInumAutoM . loop

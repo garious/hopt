@@ -61,6 +61,9 @@ type PassState = [(String, Expr)]  -- A list of unreferenced instructions.
                                    -- The String is a variable name, and
                                    -- the Expr is the value assigned to it.
 
+name                                  :: String
+name                                   = "die"
+
 emptyState                            :: PassState
 emptyState                             = []
 

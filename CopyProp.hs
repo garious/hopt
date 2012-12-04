@@ -22,6 +22,9 @@ import LlvmData
 
 type PassState = [(String, String)] -- A list of variable aliases.
 
+name                                  :: String
+name                                   = "copyprop"
+
 emptyState                            :: PassState
 emptyState                             = []
 
