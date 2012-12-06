@@ -1,11 +1,11 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Transforms.CopyProp where
-
 -- | Copy Propagation
 --
 --   This optimization pass removes redundant assignments
+
+module Transforms.CopyProp where
 
 import Control.Monad.State
   ( modify

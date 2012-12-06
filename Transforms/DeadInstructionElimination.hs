@@ -1,8 +1,6 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Transforms.DeadInstructionElimination where
-
 -- | Dead Instruction Elimination
 --
 --   This optimization pass removes assignment statements that are 
@@ -40,6 +38,7 @@ module Transforms.DeadInstructionElimination where
 --      reducing register pressure than removing dead instructions.
 --
 
+module Transforms.DeadInstructionElimination where
 
 import Data.List
   ( delete

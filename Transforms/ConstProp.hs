@@ -22,8 +22,10 @@ import Control.Lens.Plated
   )
 import LlvmData
 
+-- | A lookup table from a constant's name to its literal value.
 type ConstMap = [(String, Literal)]
 
+-- | The State for the ConstProp pass
 data PassState = S {
     currLabel   :: String
   , constMap    :: ConstMap
@@ -31,15 +33,19 @@ data PassState = S {
   , notFlushed  :: ConstMap
   }
 
+-- | Name of this optimization pass
 name                                  :: String
 name                                   = "constprop"
 
+-- | Initial state for this optimization pass
 emptyState                            :: PassState
 emptyState                             = S "" [] [] []
 
+-- | Optimize a chunk of top-level entities
 chunk                                 :: MonadState PassState m => Module -> m Module
 chunk                                  = mapM toplevelEntity
 
+-- | Optimize a top-level entity
 toplevelEntity                          :: MonadState PassState m => ToplevelEntity -> m ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
                                        = do
@@ -47,7 +53,8 @@ toplevelEntity (Function nm ret args as blk)
                                            blk' <- mapM stat blk
                                            return $ Function nm ret args as (concat blk')
 toplevelEntity x                       = return x
-
+ 
+-- | Optimize a statement
 stat                                  :: MonadState PassState m => Statement -> m Block
 stat (Assignment nm e)                 = do
                                             e' <- expr e
@@ -76,9 +83,11 @@ stat (BranchCond e b1 b2)              = do
                                              ExprConstant (LitBool False) -> [Branch b2]
                                              _ -> [BranchCond e' b1 b2]
 
+-- | Do a bottom-up traversal and optimize each expression
 expr                                  :: MonadState PassState m => Expr -> m Expr
 expr                                   = transformM expr'
 
+-- | Optimize an expression
 expr'                                 :: MonadState PassState m => Expr -> m Expr
 expr' (ExprVar nm)                     = do
                                            xs <- liftM constMap get
@@ -93,6 +102,7 @@ expr' (ExprPhi ty (x:xs))              = do
                                                       else ExprPhi ty (x':xs')
 expr' e                                = return e
 
+-- | Optimize a phi field
 phiField                              :: MonadState PassState m => (Expr, String) -> m (Expr, String)
 phiField (e, lbl)                      = do
                                            st <- get
@@ -105,6 +115,7 @@ phiField (e, lbl)                      = do
                                              Nothing -> do
                                                 return (e, lbl)
 
+-- | Add a contant to the optimization pass state
 addConst                              :: MonadState PassState m => String -> Literal -> m ()
 addConst nm x                          = modify $ \st -> st{
                                            constMap   = (nm, x) : constMap st
