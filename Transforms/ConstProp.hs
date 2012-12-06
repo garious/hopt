@@ -74,7 +74,7 @@ stat (Return s e)                      = do
 stat Flush                             = do
                                            st <- get
                                            put st{notFlushed = []}
-                                           return [Assignment nm (ExprConstant lit) | (nm, lit) <- notFlushed st]
+                                           return [Assignment nm (ExprConstant lit) | (nm, lit) <- reverse (notFlushed st)]
 stat (Branch s)                        = return [Branch s]
 stat (BranchCond e b1 b2)              = do
                                            e' <- expr e

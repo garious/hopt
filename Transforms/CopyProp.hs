@@ -55,6 +55,7 @@ stat (Assignment silly e)              = do
 stat (Return ty e)                     = do
                                            e' <- expr e
                                            return [Return ty e']
+stat Flush                             = return []
 stat x                                 = return [x]
 
 

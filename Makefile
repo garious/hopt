@@ -13,6 +13,9 @@ build: configure
 test: build
 	@cabal test
 
+install: test
+	@cabal copy
+
 docs:
 	@cabal haddock --executables --hyperlink-source
 

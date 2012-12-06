@@ -28,10 +28,13 @@ main = do
 -- | List of tests to execute
 tests :: [IO Bool]
 tests = [
-    run "ConstPropTest/Basic"                  ".ll" ["-constprop"]
-  , run "ConstPropTest/Branch"                 ".ll" ["-constprop"]
-  , run "CopyPropTest/Basic"                   ".ll" ["-copyprop"]
-  , run "DeadInstructionEliminationTest/Basic" ".ll" ["-die"]
+    run "ConstPropTest/Basic"                       ".ll" ["-constprop"]
+  , run "ConstPropTest/BasicFlush"                  ".ll" ["-constprop"]
+  , run "ConstPropTest/Branch"                      ".ll" ["-constprop"]
+  , run "CopyPropTest/Basic"                        ".ll" ["-copyprop"]
+  , run "CopyPropTest/BasicFlush"                   ".ll" ["-copyprop"]
+  , run "DeadInstructionEliminationTest/Basic"      ".ll" ["-die"]
+  , run "DeadInstructionEliminationTest/BasicFlush" ".ll" ["-die"]
   ]
 
 -- | Run a test
