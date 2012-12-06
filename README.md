@@ -32,3 +32,5 @@ Produces:
       ret i32 42
     }
 
+If you want to dig deeper, see the [Source Documentation](http://garious.github.com/hopt)
+

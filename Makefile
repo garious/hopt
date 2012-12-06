@@ -13,6 +13,9 @@ build: configure
 test: build
 	@cabal test
 
+docs:
+	@cabal haddock --executables --hyperlink-source
+
 clean:
 	rm -rf $o
 

@@ -1,6 +1,8 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | A pretty-printer for a small subset of LLVM
+
 module LlvmPrinter where
 
 import Data.String
@@ -18,6 +20,7 @@ import Data.Monoid
   )
 import LlvmData
 
+-- | A typeclass for transforming any type to any monoidal string type
 class ToLlvm a where
     toLlvm :: (Eq s, Monoid s, IsString s) => a -> s
 
@@ -31,6 +34,7 @@ instance ToLlvm ToplevelEntity where
     toLlvm (Target nm val)                = "target " <> fromString nm <> " = \"" <> fromString val <> "\""
 
 
+-- | Print a basic block line
 bbLine :: (Monoid s, IsString s) => s -> s
 bbLine s = s <> "\n"
 
@@ -47,7 +51,7 @@ instance ToLlvm Expr where
     toLlvm (ExprConstant lit)  = toLlvm lit
     toLlvm (ExprVar nm)        = identifier nm
     toLlvm (ExprAdd ty e1 e2)  = "add " <> fromString ty <+> toLlvm e1 <> ", " <> toLlvm e2
-    toLlvm (ExprPhi ty es)     = "phi " <> fromString ty <+> mintercalate ", " (map phiSource es)
+    toLlvm (ExprPhi ty es)     = "phi " <> fromString ty <+> mintercalate ", " (map phiField es)
 
 instance ToLlvm Literal where
     toLlvm (LitString s)       = fromString (show s)
@@ -55,17 +59,20 @@ instance ToLlvm Literal where
     toLlvm (LitBool True)      = "true"
     toLlvm (LitBool False)     = "false"
 
+-- | Print an identifier
 identifier :: (Monoid s, IsString s) => String -> s
 identifier s = "%" <> fromString s
 
+-- | Same as intercalate from Data.List, but works for any monoid
 mintercalate :: (Monoid s, IsString s) => s -> [s] -> s
 mintercalate _ []   = mempty
 mintercalate sep xs = foldr1 (\x y -> x <> sep <> y) xs
 
-phiSource :: (Eq s, Monoid s, IsString s) => (Expr, String) -> s
-phiSource (e, s) = "[" <> toLlvm e <> ", " <> "%" <> fromString s <> "]"
+-- | Prints a phi field
+phiField :: (Eq s, Monoid s, IsString s) => (Expr, String) -> s
+phiField (e, s) = "[" <> toLlvm e <> ", " <> "%" <> fromString s <> "]"
 
--- Concat with a space between, unless one is empty
+-- | Concat with a space between, unless one is empty
 (<+>) :: (Eq s, Monoid s, IsString s) => s -> s -> s
 a <+> b
   | a == mempty = b

@@ -20,17 +20,22 @@ import Control.Lens
   )
 import LlvmData
 
-type PassState = [(String, String)] -- A list of variable aliases.
+-- | Pass state.  A list of variable aliases.
+type PassState                         = [(String, String)]
 
+-- | Name of this optimization pass
 name                                  :: String
 name                                   = "copyprop"
 
+-- | Initial pass state
 emptyState                            :: PassState
 emptyState                             = []
 
+-- | Optimizes top-level entities
 chunk                                 :: MonadState PassState m => Module -> m Module
 chunk                                  = mapM toplevelEntity
 
+-- | Optimizes a top-level entity
 toplevelEntity                        :: MonadState PassState m => ToplevelEntity -> m ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
                                        = do
@@ -39,6 +44,8 @@ toplevelEntity (Function nm ret args as blk)
                                            return $ Function nm ret args as (concat blk')
 toplevelEntity x                       = return x
 
+
+-- | Optimizes a statement
 stat                                  :: MonadState PassState m => Statement -> m Block
 stat (Assignment silly e)              = do
                                            e' <- expr e
@@ -50,17 +57,22 @@ stat (Return ty e)                     = do
                                            return [Return ty e']
 stat x                                 = return [x]
 
+
+-- | Bottom-up optimization of each expression
 expr                                  :: MonadState PassState m => Expr -> m Expr
 expr                                   = transformM expr'
 
+-- | Optimizes an expression
 expr'                                 :: MonadState PassState m => Expr -> m Expr
 expr' (ExprVar nm)                     = popAlias nm
 expr' x                                = return x
 
 
+-- | Push a register alias into the pass state
 pushAlias                             :: MonadState PassState m => String -> String -> m ()
 pushAlias nm x                         = modify ((nm, x) :)
 
+-- | Get the best name for the given register
 popAlias                              :: MonadState PassState m => String -> m Expr
 popAlias nm                            = do
                                            xs <- get

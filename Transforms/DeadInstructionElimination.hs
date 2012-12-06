@@ -56,19 +56,24 @@ import Control.Lens
   )
 import LlvmData
 
-type PassState = [(String, Expr)]  -- A list of unreferenced instructions.
-                                   -- The String is a variable name, and
-                                   -- the Expr is the value assigned to it.
+-- | A list of unreferenced instructions.
+--   The String is a variable name, and
+--   the Expr is the value assigned to it.
+type PassState = [(String, Expr)]
 
+-- | The name of this optimization pass
 name                                  :: String
 name                                   = "die"
 
+-- | The initial state
 emptyState                            :: PassState
 emptyState                             = []
 
+-- | Optimize a list of top-level entities
 chunk                                 :: MonadState PassState m => Module -> m Module
 chunk                                  = mapM toplevelEntity
 
+-- | Optimize a top-level entity
 toplevelEntity                        :: MonadState PassState m => ToplevelEntity -> m ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
                                        = do
@@ -77,6 +82,8 @@ toplevelEntity (Function nm ret args as blk)
                                            return $ Function nm ret args as (concat blk')
 toplevelEntity x                       = return x
 
+
+-- | Optimize a statement
 stat                                  :: MonadState PassState m => Statement -> m Block
 stat (Assignment nm e)                 = do
                                            xss <- mapM popStatement (vars e)
@@ -91,16 +98,23 @@ stat Flush                             = do
                                            return $ map (uncurry Assignment) st
 stat x                                 = return [x]
 
+
+-- | Given an expression, return the variable names it references
 vars                                  :: Expr -> [String]
 vars                                   = concatMap vars' . universe
 
+-- | Given an expresion, if it is variable, return its name.  Otherwise, return an empty list
 vars'                                 :: Expr -> [String]
 vars' (ExprVar nm)                     = [nm]
 vars' _                                = []
 
+
+-- | Push a statement that may be dead
 pushStatement                         :: MonadState PassState m => String -> Expr -> m ()
 pushStatement nm x                     = modify ((nm, x) :)
 
+
+-- | Lookup a statement that is now known to be undead.  Remove it from the list of dead instructions.
 popStatement                          :: MonadState PassState m => String -> m [Statement]
 popStatement nm                          = do 
                                              xs <- get

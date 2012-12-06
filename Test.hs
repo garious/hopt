@@ -14,6 +14,7 @@ import System.Directory
   ( setCurrentDirectory
   )
 
+-- | Entry point for the test suite
 main :: IO ()
 main = do
     setCurrentDirectory "Transforms"
@@ -24,16 +25,18 @@ main = do
       else
         exitFailure
 
+-- | List of tests to execute
 tests :: [IO Bool]
 tests = [
-    runHopt "ConstPropTest/Basic"                  ".ll" ["-constprop"]
-  , runHopt "ConstPropTest/Branch"                 ".ll" ["-constprop"]
-  , runHopt "CopyPropTest/Basic"                   ".ll" ["-copyprop"]
-  , runHopt "DeadInstructionEliminationTest/Basic" ".ll" ["-die"]
+    run "ConstPropTest/Basic"                  ".ll" ["-constprop"]
+  , run "ConstPropTest/Branch"                 ".ll" ["-constprop"]
+  , run "CopyPropTest/Basic"                   ".ll" ["-copyprop"]
+  , run "DeadInstructionEliminationTest/Basic" ".ll" ["-die"]
   ]
 
-runHopt :: String -> String -> [String] -> IO Bool
-runHopt nm ext optPasses = do
+-- | Run a test
+run :: String -> String -> [String] -> IO Bool
+run nm ext optPasses = do
     act <- readProcess hoptPath ("-S" : optPasses ++ [nm ++ ext]) ""
     gld <- readFile (nm ++ ".gold" ++ ext)
     if act /= gld
@@ -47,5 +50,6 @@ runHopt nm ext optPasses = do
       else
         return True
 
+-- | Path to hopt
 hoptPath :: FilePath
 hoptPath = "../dist/build/hopt/hopt"

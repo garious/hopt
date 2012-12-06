@@ -2,6 +2,8 @@
 -- this module Trustworthy until Travis-CI upgrades.
 {-# LANGUAGE Trustworthy #-}
 
+-- | The command-line argument parser for hopt
+
 module HoptArgParser where
 
 import Control.Lens.Setter
@@ -37,10 +39,11 @@ import Text.Parsec
   )
 import HoptArgData
 
--- By default, do no optimizations on stdin, compile to bitcode and output to stdout
+-- | By default, do no optimizations on stdin, compile to bitcode and output to stdout
 defaultCfg :: Cfg
 defaultCfg = Cfg [] "-" "-" False
 
+-- | Parse the argument list.  Return either an error of the Hopt configuration
 parseArguments :: [String] -> String -> Either ParseError Cfg
 parseArguments optPassNames str = const cfg `fmap` result
   where
