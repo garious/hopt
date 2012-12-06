@@ -6,6 +6,15 @@ Build-Type:     Simple
 
 executable hopt
   main-is:        HoptMain.hs
+  other-modules:  Hopt
+                , HoptArgParser
+                , HOptArgData
+                , LlvmData
+                , LlvmParser
+                , LlvmPrinter
+                , Transforms.ConstProp
+                , Transforms.CopyProp
+                , Transforms.DeadInstructionElimination
   GHC-Options:    -Wall
   build-depends:  base
                 , bytestring
