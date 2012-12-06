@@ -8,7 +8,7 @@ executable hopt
   main-is:        HoptMain.hs
   other-modules:  Hopt
                 , HoptArgParser
-                , HOptArgData
+                , HoptArgData
                 , LlvmData
                 , LlvmParser
                 , LlvmPrinter
