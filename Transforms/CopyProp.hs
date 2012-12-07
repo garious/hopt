@@ -15,7 +15,7 @@ import Control.Monad.State
 import Control.Monad.State.Class
   ( MonadState
   )
-import Control.Lens
+import Control.Lens.Plated
   ( transformM
   )
 import LlvmData
