@@ -9,9 +9,7 @@
 module Transforms.ConstProp where
 
 import Control.Monad.State
-  ( liftM
-  , modify
-  , get
+  ( get
   , put
   )
 import Control.Monad.State.Class
@@ -20,18 +18,16 @@ import Control.Monad.State.Class
 import Control.Lens.Plated
   ( transformM
   )
+import Control.Lens.Getter
+  ( (^.)   -- lens getter
+  , use
+  )
+import Control.Lens.Setter
+  ( (.=)   -- assign a lens from a monad
+  , (%=)   -- modfiy a lens from a monad
+  )
+import Transforms.ConstPropData
 import LlvmData
-
--- | A lookup table from a constant's name to its literal value.
-type ConstMap = [(String, Literal)]
-
--- | The State for the ConstProp pass
-data PassState = S {
-    currLabel   :: String
-  , constMap    :: ConstMap
-  , constMapMap :: [(String, ConstMap)]
-  , notFlushed  :: ConstMap
-  }
 
 -- | Name of this optimization pass
 name                                  :: String
@@ -62,19 +58,19 @@ stat (Assignment nm e)                 = do
                                               ExprConstant x -> addConst nm x >> return []
                                               x              -> return [Assignment nm x]
 stat (Label s)                         = do
-                                           modify $ \st -> st{
-                                             currLabel = s
-                                           , constMap  = []
-                                           , constMapMap = (currLabel st, constMap st) : constMapMap st
-                                           }
+                                           lbl <- use currLabel
+                                           xs  <- use constMap
+                                           constMapMap %= ((lbl, xs) :)
+                                           currLabel .= s
+                                           constMap  .= []
                                            return [Label s]
 stat (Return s e)                      = do
                                            e' <- expr e
                                            return [Return s e']
 stat Flush                             = do
-                                           st <- get
-                                           put st{notFlushed = []}
-                                           return [Assignment nm (ExprConstant lit) | (nm, lit) <- reverse (notFlushed st)]
+                                           xs <- use notFlushed
+                                           notFlushed .= []
+                                           return [Assignment nm (ExprConstant lit) | (nm, lit) <- reverse xs]
 stat (Branch s)                        = return [Branch s]
 stat (BranchCond e b1 b2)              = do
                                            e' <- expr e
@@ -90,7 +86,7 @@ expr                                   = transformM expr'
 -- | Optimize an expression
 expr'                                 :: MonadState PassState m => Expr -> m Expr
 expr' (ExprVar nm)                     = do
-                                           xs <- liftM constMap get
+                                           xs <- use constMap
                                            return $ maybe (ExprVar nm) ExprConstant (lookup nm xs)
 expr' (ExprAdd _ty (ExprConstant (LitInteger i1)) (ExprConstant (LitInteger i2)))
                                        = return $ ExprConstant (LitInteger (i1 + i2))
@@ -106,9 +102,9 @@ expr' e                                = return e
 phiField                              :: MonadState PassState m => (Expr, String) -> m (Expr, String)
 phiField (e, lbl)                      = do
                                            st <- get
-                                           case lookup lbl (constMapMap st) of
+                                           case lookup lbl (st^.constMapMap) of
                                              Just cMap -> do
-                                                put st{constMap = cMap}
+                                                constMap .= cMap
                                                 e' <- expr e
                                                 put st
                                                 return (e', lbl)
@@ -117,8 +113,7 @@ phiField (e, lbl)                      = do
 
 -- | Add a contant to the optimization pass state
 addConst                              :: MonadState PassState m => String -> Literal -> m ()
-addConst nm x                          = modify $ \st -> st{
-                                           constMap   = (nm, x) : constMap st
-                                         , notFlushed = (nm, x) : notFlushed st
-                                         }
+addConst nm x                          = do
+                                           constMap   %= ((nm, x) :)
+                                           notFlushed %= ((nm, x) :)
 
