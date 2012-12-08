@@ -18,7 +18,14 @@ import Data.Attoparsec.ByteString
   , skipWhile
   , sepBy
   , sepBy1
+  , inClass
   , Parser
+  )
+import Data.Attoparsec.ByteString.Char8
+  ( skipSpace
+  , space
+  , decimal
+  , isDigit_w8
   )
 import Control.Applicative
   ( (<*>) -- Apply
@@ -33,6 +40,9 @@ import Control.Applicative
 import Data.Char
   ( ord
   )
+import Data.Word
+  ( Word8
+  )
 import Prelude hiding (takeWhile)
 
 import LlvmData
@@ -45,7 +55,7 @@ basicBlock = concat <$> many basicBlock'
 
 -- | Parses a statement followed by a terminator or a terminator
 basicBlock' :: Parser Block
-basicBlock' = (: []) <$> (whitespace *> (stat <|> flushStat) <* terminator)
+basicBlock' = (: []) <$> (skipSpace *> (stat <|> flushStat) <* terminator)
          <|> terminator *> return []
 
 -- | Parses a statement
@@ -124,7 +134,7 @@ returnStat = Return <$> (keyword "ret" *> llvmType) <*> expression
 -- | Parses an expression
 expression :: Parser Expr
 expression = ExprVar <$> identifier
-         <|> ExprConstant . LitInteger <$> integer
+         <|> ExprConstant . LitInteger <$> decimal
          <|> addExpr
          <|> phiExpr
          <?> "expression"
@@ -151,10 +161,6 @@ phiExpr = do
 phiField :: Parser (Expr, String)
 phiField = (,) <$> (expression <* comma) <*> identifier
 
--- | Parses an integer
-integer :: Parser Integer
-integer = read . BC.unpack <$> takeWhile1 isNum
-
 -- | Parses a global variable
 globalVar :: Parser String
 globalVar = BC.unpack <$> (string "@" *> takeWhile1 isAlphaNumOrUnder)
@@ -167,42 +173,26 @@ identifier = BC.unpack <$> (string "%" *> takeWhile1 isAlphaNumOrUnder)
 labelStat :: Parser Statement
 labelStat = (Label . BC.unpack) <$> (takeWhile1 isAlphaNumOrUnder <* string ":")
 
--- | Parses a letter or underscore
-isLetterOrUnder :: (Enum a, Ord a) => a -> Bool
-isLetterOrUnder s = s >= eord 'a' && s <= eord 'z' || s >= eord 'A' && s <= eord 'Z' || s == eord '_'
-
 -- | Parses an alphanumeric character or an underscore
-isAlphaNumOrUnder :: (Enum a, Ord a) => a -> Bool
-isAlphaNumOrUnder s = isLetterOrUnder s || isNum s
-
--- | Returns true if the input character is a number
-isNum :: (Enum a, Ord a) => a -> Bool
-isNum s = s >= eord '0' && s <= eord '9'
+isAlphaNumOrUnder :: Word8 -> Bool
+isAlphaNumOrUnder s = inClass "a-zA-Z" s || isDigit_w8 s || eord '_' == s
 
 -- | Requires some whitespace after keyword
 keyword :: BC.ByteString -> Parser ()
-keyword s = string s >> whitespace1
+keyword s = string s >> skipSpace1
 
 -- | Optional whitespace on either side of a given string
 token :: BC.ByteString -> Parser ()
-token s = whitespace >> string s >> whitespace
-
--- | Parse zero or more whitespace characters
-whitespace :: Parser ()
-whitespace = skipWhile isWhite
+token s = skipSpace >> string s >> skipSpace
 
 -- | Parse one or more whitespace characters
-whitespace1 :: Parser ()
-whitespace1 = takeWhile1 isWhite *> return ()
-
--- | Returns true if the input character is a whitespace character
-isWhite :: (Enum a, Eq a) => a -> Bool
-isWhite s = s == eord ' ' || s == eord '\n' || s == eord '\t' || s == eord '\r'
+skipSpace1 :: Parser ()
+skipSpace1 = space >> skipSpace
 
 -- | Parses a list of top-level entities
 toplevelEntities :: Parser Module
 toplevelEntities = (do
-    x <- whitespace *> toplevelEntity
+    x <- skipSpace *> toplevelEntity
     return [x])
  <|> (terminator *> return [])
 
@@ -217,7 +207,7 @@ target :: Parser ToplevelEntity
 target = do
     keyword "target"
     nm <- targetName
-    whitespace
+    skipSpace
     keyword "="
     s <- stringLiteral
     return $ Target nm s
@@ -246,42 +236,42 @@ function = do
     keyword "define"
     ty <- llvmType
     nm <- globalVar
-    whitespace
+    skipSpace
     args <- parens (argument `sepBy` comma)
-    whitespace
+    skipSpace
     as   <- many functionAttribute
     bb   <- braces basicBlock
     return $ Function ty nm args as bb
 
 -- | Parses 'p' within parens
 parens :: Parser a -> Parser a
-parens p = string "(" *> whitespace *> p <* whitespace <* string ")"
+parens p = string "(" *> skipSpace *> p <* skipSpace <* string ")"
 
 -- | Parses 'p' within braces
 braces :: Parser a -> Parser a
-braces p = string "{" *> whitespace *> p <* whitespace <* string "}"
+braces p = string "{" *> skipSpace *> p <* skipSpace <* string "}"
 
 -- | Parses 'p' within brackets
 brackets :: Parser a -> Parser a
-brackets p = string "[" *> whitespace *> p <* whitespace <* string "]"
+brackets p = string "[" *> skipSpace *> p <* skipSpace <* string "]"
 
 -- | Parses a function argument
 argument :: Parser String
 argument = do
-    whitespace
+    skipSpace
     _ty <- llvmType
     identifier
 
 -- | Parses a comma
 comma :: Parser ()
-comma = whitespace *> string "," *> whitespace
+comma = skipSpace *> string "," *> skipSpace
 
 -- | Parses an LLVM type
 llvmType :: Parser String
 llvmType = do
     ty  <- intType
     ptr <- (BC.unpack <$> string "*") <|> return ""
-    whitespace1
+    skipSpace1
     return $ ty ++ ptr
 
 -- | Parses an integer type
