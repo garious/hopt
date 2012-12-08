@@ -19,7 +19,7 @@ executable hopt
   build-depends:  base
                 , bytestring
                 , iterIO
-                , mtl
+                , transformers
                 , lens >= 3.6
                 , cpphs
                 , attoparsec

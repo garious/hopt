@@ -20,14 +20,14 @@ import Data.IterIO
   , ungetI
   )
 import Data.IterIO.Trans
-  ( runStateTLI
-  , liftI
+  ( liftI
   )
 import Data.IterIO.Atto
   ( atto
   )
-import Control.Monad.State
+import Control.Monad.Trans.State
   ( StateT
+  , runStateT
   )
 import qualified Transforms.ConstProp as ConstProp
 import qualified Transforms.CopyProp as CopyProp
@@ -94,12 +94,12 @@ optPassMap = [
 --   state to pass into the first chunk.  The function will run the
 --   optimization, collect the output state and then feed it back into the
 --   next chunk processor when the next chunk enters the pipeline.
-statefulPass :: (Monad m, ChunkData tOut) => (tOut -> Iter tOut (StateT s m) tOut) -> s -> Inum tOut tOut m a
+statefulPass :: (Monad m, ChunkData tOut) => (tOut -> StateT s (Iter tOut m) tOut) -> s -> Inum tOut tOut m a
 statefulPass iter = mkInumAutoM . loop
   where 
     loop st = do
       x <- dataI
-      (t', st') <- liftI $ runStateTLI (iter x) st
+      (t', st') <- liftI $ runStateT (iter x) st
       done <- ifeed t'
       if not done
         then loop st'

@@ -1,5 +1,4 @@
 {-# LANGUAGE Safe #-}
-{-# LANGUAGE FlexibleContexts #-}
 
 -- | Copy Propagation
 --
@@ -7,13 +6,11 @@
 
 module Transforms.CopyProp where
 
-import Control.Monad.State
+import Control.Monad.Trans.State
   ( modify
   , get
   , put
-  )
-import Control.Monad.State.Class
-  ( MonadState
+  , StateT
   )
 import Control.Lens.Plated
   ( transformM
@@ -32,11 +29,11 @@ emptyState                            :: PassState
 emptyState                             = []
 
 -- | Optimizes top-level entities
-chunk                                 :: MonadState PassState m => Module -> m Module
+chunk                                 :: Monad m => Module -> StateT PassState m Module
 chunk                                  = mapM toplevelEntity
 
 -- | Optimizes a top-level entity
-toplevelEntity                        :: MonadState PassState m => ToplevelEntity -> m ToplevelEntity
+toplevelEntity                        :: Monad m => ToplevelEntity -> StateT PassState m ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
                                        = do
                                            put []
@@ -46,7 +43,7 @@ toplevelEntity x                       = return x
 
 
 -- | Optimizes a statement
-stat                                  :: MonadState PassState m => Statement -> m Block
+stat                                  :: Monad m => Statement -> StateT PassState m Block
 stat (Assignment silly e)              = do
                                            e' <- expr e
                                            case e' of
@@ -60,21 +57,21 @@ stat x                                 = return [x]
 
 
 -- | Bottom-up optimization of each expression
-expr                                  :: MonadState PassState m => Expr -> m Expr
+expr                                  :: Monad m => Expr -> StateT PassState m Expr
 expr                                   = transformM expr'
 
 -- | Optimizes an expression
-expr'                                 :: MonadState PassState m => Expr -> m Expr
+expr'                                 :: Monad m => Expr -> StateT PassState m Expr
 expr' (ExprVar nm)                     = popAlias nm
 expr' x                                = return x
 
 
 -- | Push a register alias into the pass state
-pushAlias                             :: MonadState PassState m => String -> String -> m ()
+pushAlias                             :: Monad m => String -> String -> StateT PassState m ()
 pushAlias nm x                         = modify ((nm, x) :)
 
 -- | Get the best name for the given register
-popAlias                              :: MonadState PassState m => String -> m Expr
+popAlias                              :: Monad m => String -> StateT PassState m Expr
 popAlias nm                            = do
                                            xs <- get
                                            return $ ExprVar (maybe nm id (lookup nm xs))

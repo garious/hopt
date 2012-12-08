@@ -1,5 +1,4 @@
 {-# LANGUAGE Safe #-}
-{-# LANGUAGE FlexibleContexts #-}
 
 -- | Constant Propagation
 --
@@ -8,12 +7,10 @@
 
 module Transforms.ConstProp where
 
-import Control.Monad.State
+import Control.Monad.Trans.State
   ( get
   , put
-  )
-import Control.Monad.State.Class
-  ( MonadState
+  , StateT
   )
 import Control.Lens.Plated
   ( transformM
@@ -38,11 +35,11 @@ emptyState                            :: PassState
 emptyState                             = S "" [] [] []
 
 -- | Optimize a chunk of top-level entities
-chunk                                 :: MonadState PassState m => Module -> m Module
+chunk                                 :: Monad m => Module -> StateT PassState m Module
 chunk                                  = mapM toplevelEntity
 
 -- | Optimize a top-level entity
-toplevelEntity                          :: MonadState PassState m => ToplevelEntity -> m ToplevelEntity
+toplevelEntity                          :: Monad m => ToplevelEntity -> StateT PassState m ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
                                        = do
                                            put emptyState
@@ -51,7 +48,7 @@ toplevelEntity (Function nm ret args as blk)
 toplevelEntity x                       = return x
  
 -- | Optimize a statement
-stat                                  :: MonadState PassState m => Statement -> m Block
+stat                                  :: Monad m => Statement -> StateT PassState m Block
 stat (Assignment nm e)                 = do
                                             e' <- expr e
                                             case e' of
@@ -80,11 +77,11 @@ stat (BranchCond e b1 b2)              = do
                                              _ -> [BranchCond e' b1 b2]
 
 -- | Do a bottom-up traversal and optimize each expression
-expr                                  :: MonadState PassState m => Expr -> m Expr
+expr                                  :: Monad m => Expr -> StateT PassState m Expr
 expr                                   = transformM expr'
 
 -- | Optimize an expression
-expr'                                 :: MonadState PassState m => Expr -> m Expr
+expr'                                 :: Monad m => Expr -> StateT PassState m Expr
 expr' (ExprVar nm)                     = do
                                            xs <- use constMap
                                            return $ maybe (ExprVar nm) ExprConstant (lookup nm xs)
@@ -99,7 +96,7 @@ expr' (ExprPhi ty (x:xs))              = do
 expr' e                                = return e
 
 -- | Optimize a phi field
-phiField                              :: MonadState PassState m => (Expr, String) -> m (Expr, String)
+phiField                              :: Monad m => (Expr, String) -> StateT PassState m (Expr, String)
 phiField (e, lbl)                      = do
                                            st <- get
                                            case lookup lbl (st^.constMapMap) of
@@ -112,7 +109,7 @@ phiField (e, lbl)                      = do
                                                 return (e, lbl)
 
 -- | Add a contant to the optimization pass state
-addConst                              :: MonadState PassState m => String -> Literal -> m ()
+addConst                              :: Monad m => String -> Literal -> StateT PassState m ()
 addConst nm x                          = do
                                            constMap   %= ((nm, x) :)
                                            notFlushed %= ((nm, x) :)

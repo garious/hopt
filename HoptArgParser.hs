@@ -10,7 +10,7 @@ import Control.Lens.Setter
   )
 
 -- From mtl package
-import Control.Monad.State
+import Control.Monad.Trans.State
   ( runState
   )
 

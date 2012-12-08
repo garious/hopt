@@ -1,5 +1,4 @@
 {-# LANGUAGE Safe #-}
-{-# LANGUAGE FlexibleContexts #-}
 
 -- | Dead Instruction Elimination
 --
@@ -43,13 +42,11 @@ module Transforms.DeadInstructionElimination where
 import Data.List
   ( delete
   )
-import Control.Monad.State
+import Control.Monad.Trans.State
   ( modify
   , get
   , put
-  )
-import Control.Monad.State.Class
-  ( MonadState
+  , StateT
   )
 import Control.Lens.Plated
   ( universe
@@ -70,11 +67,11 @@ emptyState                            :: PassState
 emptyState                             = []
 
 -- | Optimize a list of top-level entities
-chunk                                 :: MonadState PassState m => Module -> m Module
+chunk                                 :: Monad m => Module -> StateT PassState m Module
 chunk                                  = mapM toplevelEntity
 
 -- | Optimize a top-level entity
-toplevelEntity                        :: MonadState PassState m => ToplevelEntity -> m ToplevelEntity
+toplevelEntity                        :: Monad m => ToplevelEntity -> StateT PassState m ToplevelEntity
 toplevelEntity (Function nm ret args as blk)
                                        = do
                                            put []
@@ -84,7 +81,7 @@ toplevelEntity x                       = return x
 
 
 -- | Optimize a statement
-stat                                  :: MonadState PassState m => Statement -> m Block
+stat                                  :: Monad m => Statement -> StateT PassState m Block
 stat (Assignment nm e)                 = do
                                            xss <- mapM popStatement (vars e)
                                            pushStatement nm e
@@ -110,12 +107,12 @@ vars' _                                = []
 
 
 -- | Push a statement that may be dead
-pushStatement                         :: MonadState PassState m => String -> Expr -> m ()
+pushStatement                         :: Monad m => String -> Expr -> StateT PassState m ()
 pushStatement nm x                     = modify ((nm, x) :)
 
 
 -- | Lookup a statement that is now known to be undead.  Remove it from the list of dead instructions.
-popStatement                          :: MonadState PassState m => String -> m [Statement]
+popStatement                          :: Monad m => String -> StateT PassState m [Statement]
 popStatement nm                          = do 
                                              xs <- get
                                              case lookup nm xs of
