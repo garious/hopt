@@ -1,4 +1,6 @@
-{-# LANGUAGE Safe #-}
+-- Oddly, GHC 7.6 finds Control.Lens.Setter Safe, but GHC 7.4 does not.  So we mark
+-- this module Trustworthy until Travis-CI upgrades.
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 -- | Constant Propagation
