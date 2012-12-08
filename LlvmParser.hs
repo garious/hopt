@@ -8,18 +8,18 @@
 
 module LlvmParser where
 
-import Data.Attoparsec.ByteString.Lazy
+import Data.Attoparsec.ByteString
   ( (<?>) -- Add a name
   , string
   , satisfy
   , endOfInput
+  , takeWhile
   , takeWhile1
   , skipWhile
   , sepBy
   , sepBy1
   , Parser
   )
-import qualified Data.Attoparsec.ByteString.Lazy as A
 import Control.Applicative
   ( (<*>) -- Apply
   , (<$>) -- Apply pure
@@ -33,6 +33,7 @@ import Control.Applicative
 import Data.Char
   ( ord
   )
+import Prelude hiding (takeWhile)
 
 import LlvmData
 
@@ -108,7 +109,7 @@ isTerminator s = s == eord '\n'
 
 -- | Parses a comment
 comment :: Parser BC.ByteString
-comment = satisfy (== eord ';') *> A.takeWhile (not . isTerminator)
+comment = satisfy (== eord ';') *> takeWhile (not . isTerminator)
 
 -- | Parses an assignment statement
 assignStat :: Parser Statement
