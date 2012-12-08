@@ -21,19 +21,28 @@ import Control.Applicative
   , (<*>)
   , (<|>)
   )
-import Text.Parsec
-  ( string
-  , (<?>)
-  , skipMany
-  , satisfy
-  , eof
+import Text.Parsec.Prim
+  ( (<?>)
   , many
-  , many1
-  , spaces
-  , runParserT
   , try
+  , runParserT
   , unexpected
-  , ParseError
+  , skipMany
+  )
+import Text.Parsec.String
+  ( -- Import instances
+  )
+import Text.Parsec.Combinator
+  ( eof
+  , many1
+  )
+import Text.Parsec.Char
+  ( string
+  , satisfy
+  , spaces
+  )
+import Text.Parsec.Error
+  ( ParseError
   )
 import HoptArgData
 
