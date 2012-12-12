@@ -237,7 +237,7 @@ function = do
     ty <- llvmType
     nm <- globalVar
     skipSpace
-    args <- parens (argument `sepBy` comma)
+    args <- parens (parameter `sepBy` comma)
     skipSpace
     as   <- many functionAttribute
     bb   <- braces basicBlock
@@ -255,12 +255,11 @@ braces p = string "{" *> skipSpace *> p <* skipSpace <* string "}"
 brackets :: Parser a -> Parser a
 brackets p = string "[" *> skipSpace *> p <* skipSpace <* string "]"
 
--- | Parses a function argument
-argument :: Parser String
-argument = do
+-- | Parses a function parameter
+parameter :: Parser Parameter
+parameter = do
     skipSpace
-    _ty <- llvmType
-    identifier
+    Parameter <$> llvmType <*> identifier
 
 -- | Parses a comma
 comma :: Parser ()

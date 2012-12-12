@@ -21,8 +21,12 @@ import Data.Data.Lens
 type Module                    = [ToplevelEntity]
 
 -- | A top-level entity within a module
-data ToplevelEntity            = Function String String [String] [String] Block
+data ToplevelEntity            = Function String String [Parameter] [String] Block
                                | Target String String
+                                 deriving (Show, Eq)
+
+-- | A function parameter
+data Parameter                 = Parameter String String  -- Type, Name
                                  deriving (Show, Eq)
 
 -- | A block of statements

@@ -27,7 +27,7 @@ class ToLlvm a where
 instance ToLlvm ToplevelEntity where
     toLlvm (Function ret nm args as blk)  = "\ndefine " <> fromString ret
                                         <+> "@" <> fromString nm
-                                         <> "(" <> fromString (intercalate ", " args) <> ")"
+                                         <> "(" <> fromString (intercalate ", " (map parameter args)) <> ")"
                                         <+> fromString (unwords as)
                                         <+> "{\n" <> mconcat (map (bbLine . toLlvm) blk) <> "}"
 
@@ -43,8 +43,8 @@ instance ToLlvm Statement where
     toLlvm (Assignment s e)    = "  %" <> fromString s <> " = " <> toLlvm e
     toLlvm (Return s e)        = "  ret " <> fromString s <+> toLlvm e
     toLlvm (Label s)           = "\n" <> fromString s <> ":"
-    toLlvm (Branch s)          = "  br " <> identifier s
-    toLlvm (BranchCond b t f)  = "  br " <> toLlvm b <+> "label " <> identifier t <> ", label " <> identifier f
+    toLlvm (Branch s)          = "  br" <+> label s
+    toLlvm (BranchCond b t f)  = "  br i1" <+> toLlvm b <> "," <+> label t <> "," <+> label f
     toLlvm (Flush)             = mempty
 
 instance ToLlvm Expr where
@@ -59,8 +59,16 @@ instance ToLlvm Literal where
     toLlvm (LitBool True)      = "true"
     toLlvm (LitBool False)     = "false"
 
+-- | Print a function parameter
+parameter :: (Eq s, Monoid s, IsString s) => Parameter -> s
+parameter (Parameter ty s) = fromString ty <+> identifier s
+
+-- | Print a label
+label :: (Eq s, Monoid s, IsString s) => String -> s
+label s = "label" <+> identifier s
+
 -- | Print an identifier
-identifier :: (Monoid s, IsString s) => String -> s
+identifier :: (Eq s, Monoid s, IsString s) => String -> s
 identifier s = "%" <> fromString s
 
 -- | Same as intercalate from Data.List, but works for any monoid
@@ -70,7 +78,7 @@ mintercalate sep xs = foldr1 (\x y -> x <> sep <> y) xs
 
 -- | Prints a phi field
 phiField :: (Eq s, Monoid s, IsString s) => (Expr, String) -> s
-phiField (e, s) = "[" <> toLlvm e <> ", " <> "%" <> fromString s <> "]"
+phiField (e, s) = "[" <+> toLlvm e <> "," <+> identifier s <+> "]"
 
 -- | Concat with a space between, unless one is empty
 (<+>) :: (Eq s, Monoid s, IsString s) => s -> s -> s
