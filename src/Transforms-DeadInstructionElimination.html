@@ -8,130 +8,127 @@
 </head>
 <body>
 <pre><a name="line-1"></a><span class='hs-comment'>{-# LANGUAGE Safe #-}</span>
-<a name="line-2"></a><span class='hs-comment'>{-# LANGUAGE FlexibleContexts #-}</span>
-<a name="line-3"></a>
-<a name="line-4"></a><span class='hs-comment'>-- | Dead Instruction Elimination</span>
-<a name="line-5"></a><span class='hs-comment'>--</span>
-<a name="line-6"></a><span class='hs-comment'>--   This optimization pass removes assignment statements that are </span>
-<a name="line-7"></a><span class='hs-comment'>--   unreferenced by all later statements.  Unlike the LLVM version,</span>
-<a name="line-8"></a><span class='hs-comment'>--   this version also moves each instruction as closely as possible to</span>
-<a name="line-9"></a><span class='hs-comment'>--   the first instruction that references it.</span>
-<a name="line-10"></a><span class='hs-comment'>--</span>
-<a name="line-11"></a><span class='hs-comment'>--   How it works:</span>
-<a name="line-12"></a><span class='hs-comment'>--</span>
-<a name="line-13"></a><span class='hs-comment'>--   When a definition (i.e. assignment) is parsed, we pull it out of the basic</span>
-<a name="line-14"></a><span class='hs-comment'>--   block until another statement references it.  Then, for each statement, we</span>
-<a name="line-15"></a><span class='hs-comment'>--   lookup all definitions it uses and check for them in our list of</span>
-<a name="line-16"></a><span class='hs-comment'>--   unreferenced definitions.  If we find one, we push the definition back</span>
-<a name="line-17"></a><span class='hs-comment'>--   into the basic block, just before the statement that references it.</span>
-<a name="line-18"></a><span class='hs-comment'>--</span>
-<a name="line-19"></a><span class='hs-comment'>--   For example:</span>
-<a name="line-20"></a><span class='hs-comment'>--</span>
-<a name="line-21"></a><span class='hs-comment'>--   Line  Input         PassState          Output             Comment</span>
-<a name="line-22"></a><span class='hs-comment'>--   ----  --------      ---------          ------             -------</span>
-<a name="line-23"></a><span class='hs-comment'>--     1   %1 = 5        [%1 = 5]                              %1 may be unreferrenced</span>
-<a name="line-24"></a><span class='hs-comment'>--     2   %2 = 7        [%1 = 5, %2 = 7]                      %1 &amp; %2 may be unreferrenced</span>
-<a name="line-25"></a><span class='hs-comment'>--     3   %3 = %1       [%2 = 7, %3 = %1]  [%1 = 5]           %1 is used</span>
-<a name="line-26"></a><span class='hs-comment'>--     4   ret %3        [%2 = 7]           [%3 = %1, ret %3]  %3 is used, %2 is dropped</span>
-<a name="line-27"></a><span class='hs-comment'>--</span>
-<a name="line-28"></a><span class='hs-comment'>--   Limitations:</span>
-<a name="line-29"></a><span class='hs-comment'>--</span>
-<a name="line-30"></a><span class='hs-comment'>--      1. If there is a chain of unreferenced definitions, this pass will only</span>
-<a name="line-31"></a><span class='hs-comment'>--         remove the first link in the chain.</span>
-<a name="line-32"></a><span class='hs-comment'>--      2. Code size: A redundant definition can be pulled into branch if both</span>
-<a name="line-33"></a><span class='hs-comment'>--         sides reference the definition for the first time.</span>
-<a name="line-34"></a><span class='hs-comment'>--</span>
-<a name="line-35"></a><span class='hs-comment'>--   Hindsight:</span>
-<a name="line-36"></a><span class='hs-comment'>--</span>
-<a name="line-37"></a><span class='hs-comment'>--      This pass is probably more useful in improving spacial locality and</span>
-<a name="line-38"></a><span class='hs-comment'>--      reducing register pressure than removing dead instructions.</span>
-<a name="line-39"></a><span class='hs-comment'>--</span>
-<a name="line-40"></a>
-<a name="line-41"></a><span class='hs-keyword'>module</span> <span class='hs-conid'>Transforms</span><span class='hs-varop'>.</span><span class='hs-conid'>DeadInstructionElimination</span> <span class='hs-keyword'>where</span>
-<a name="line-42"></a>
-<a name="line-43"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>List</span>
-<a name="line-44"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>delete</span>
-<a name="line-45"></a>  <span class='hs-layout'>)</span>
-<a name="line-46"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Monad</span><span class='hs-varop'>.</span><span class='hs-conid'>State</span>
-<a name="line-47"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>modify</span>
-<a name="line-48"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>get</span>
-<a name="line-49"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>put</span>
+<a name="line-2"></a>
+<a name="line-3"></a><span class='hs-comment'>-- | Dead Instruction Elimination</span>
+<a name="line-4"></a><span class='hs-comment'>--</span>
+<a name="line-5"></a><span class='hs-comment'>--   This optimization pass removes assignment statements that are </span>
+<a name="line-6"></a><span class='hs-comment'>--   unreferenced by all later statements.  Unlike the LLVM version,</span>
+<a name="line-7"></a><span class='hs-comment'>--   this version also moves each instruction as closely as possible to</span>
+<a name="line-8"></a><span class='hs-comment'>--   the first instruction that references it.</span>
+<a name="line-9"></a><span class='hs-comment'>--</span>
+<a name="line-10"></a><span class='hs-comment'>--   How it works:</span>
+<a name="line-11"></a><span class='hs-comment'>--</span>
+<a name="line-12"></a><span class='hs-comment'>--   When a definition (i.e. assignment) is parsed, we pull it out of the basic</span>
+<a name="line-13"></a><span class='hs-comment'>--   block until another statement references it.  Then, for each statement, we</span>
+<a name="line-14"></a><span class='hs-comment'>--   lookup all definitions it uses and check for them in our list of</span>
+<a name="line-15"></a><span class='hs-comment'>--   unreferenced definitions.  If we find one, we push the definition back</span>
+<a name="line-16"></a><span class='hs-comment'>--   into the basic block, just before the statement that references it.</span>
+<a name="line-17"></a><span class='hs-comment'>--</span>
+<a name="line-18"></a><span class='hs-comment'>--   For example:</span>
+<a name="line-19"></a><span class='hs-comment'>--</span>
+<a name="line-20"></a><span class='hs-comment'>--   Line  Input         PassState          Output             Comment</span>
+<a name="line-21"></a><span class='hs-comment'>--   ----  --------      ---------          ------             -------</span>
+<a name="line-22"></a><span class='hs-comment'>--     1   %1 = 5        [%1 = 5]                              %1 may be unreferrenced</span>
+<a name="line-23"></a><span class='hs-comment'>--     2   %2 = 7        [%1 = 5, %2 = 7]                      %1 &amp; %2 may be unreferrenced</span>
+<a name="line-24"></a><span class='hs-comment'>--     3   %3 = %1       [%2 = 7, %3 = %1]  [%1 = 5]           %1 is used</span>
+<a name="line-25"></a><span class='hs-comment'>--     4   ret %3        [%2 = 7]           [%3 = %1, ret %3]  %3 is used, %2 is dropped</span>
+<a name="line-26"></a><span class='hs-comment'>--</span>
+<a name="line-27"></a><span class='hs-comment'>--   Limitations:</span>
+<a name="line-28"></a><span class='hs-comment'>--</span>
+<a name="line-29"></a><span class='hs-comment'>--      1. If there is a chain of unreferenced definitions, this pass will only</span>
+<a name="line-30"></a><span class='hs-comment'>--         remove the first link in the chain.</span>
+<a name="line-31"></a><span class='hs-comment'>--      2. Code size: A redundant definition can be pulled into branch if both</span>
+<a name="line-32"></a><span class='hs-comment'>--         sides reference the definition for the first time.</span>
+<a name="line-33"></a><span class='hs-comment'>--</span>
+<a name="line-34"></a><span class='hs-comment'>--   Hindsight:</span>
+<a name="line-35"></a><span class='hs-comment'>--</span>
+<a name="line-36"></a><span class='hs-comment'>--      This pass is probably more useful in improving spacial locality and</span>
+<a name="line-37"></a><span class='hs-comment'>--      reducing register pressure than removing dead instructions.</span>
+<a name="line-38"></a><span class='hs-comment'>--</span>
+<a name="line-39"></a>
+<a name="line-40"></a><span class='hs-keyword'>module</span> <span class='hs-conid'>Transforms</span><span class='hs-varop'>.</span><span class='hs-conid'>DeadInstructionElimination</span> <span class='hs-keyword'>where</span>
+<a name="line-41"></a>
+<a name="line-42"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>List</span>
+<a name="line-43"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>delete</span>
+<a name="line-44"></a>  <span class='hs-layout'>)</span>
+<a name="line-45"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Monad</span><span class='hs-varop'>.</span><span class='hs-conid'>Trans</span><span class='hs-varop'>.</span><span class='hs-conid'>State</span>
+<a name="line-46"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>modify</span>
+<a name="line-47"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>get</span>
+<a name="line-48"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>put</span>
+<a name="line-49"></a>  <span class='hs-layout'>,</span> <span class='hs-conid'>StateT</span>
 <a name="line-50"></a>  <span class='hs-layout'>)</span>
-<a name="line-51"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Monad</span><span class='hs-varop'>.</span><span class='hs-conid'>State</span><span class='hs-varop'>.</span><span class='hs-conid'>Class</span>
-<a name="line-52"></a>  <span class='hs-layout'>(</span> <span class='hs-conid'>MonadState</span>
+<a name="line-51"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Lens</span><span class='hs-varop'>.</span><span class='hs-conid'>Plated</span>
+<a name="line-52"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>universe</span>
 <a name="line-53"></a>  <span class='hs-layout'>)</span>
-<a name="line-54"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Lens</span>
-<a name="line-55"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>universe</span>
-<a name="line-56"></a>  <span class='hs-layout'>)</span>
-<a name="line-57"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>LlvmData</span>
-<a name="line-58"></a>
-<a name="line-59"></a><a name="PassState"></a><span class='hs-comment'>-- | A list of unreferenced instructions.</span>
-<a name="line-60"></a><a name="PassState"></a><span class='hs-comment'>--   The String is a variable name, and</span>
-<a name="line-61"></a><a name="PassState"></a><span class='hs-comment'>--   the Expr is the value assigned to it.</span>
-<a name="line-62"></a><a name="PassState"></a><span class='hs-keyword'>type</span> <span class='hs-conid'>PassState</span> <span class='hs-keyglyph'>=</span> <span class='hs-keyglyph'>[</span><span class='hs-layout'>(</span><span class='hs-conid'>String</span><span class='hs-layout'>,</span> <span class='hs-conid'>Expr</span><span class='hs-layout'>)</span><span class='hs-keyglyph'>]</span>
-<a name="line-63"></a>
-<a name="line-64"></a><a name="name"></a><span class='hs-comment'>-- | The name of this optimization pass</span>
-<a name="line-65"></a><span class='hs-definition'>name</span>                                  <span class='hs-keyglyph'>::</span> <span class='hs-conid'>String</span>
-<a name="line-66"></a><span class='hs-definition'>name</span>                                   <span class='hs-keyglyph'>=</span> <span class='hs-str'>"die"</span>
-<a name="line-67"></a>
-<a name="line-68"></a><a name="emptyState"></a><span class='hs-comment'>-- | The initial state</span>
-<a name="line-69"></a><span class='hs-definition'>emptyState</span>                            <span class='hs-keyglyph'>::</span> <span class='hs-conid'>PassState</span>
-<a name="line-70"></a><span class='hs-definition'>emptyState</span>                             <span class='hs-keyglyph'>=</span> <span class='hs-conid'>[]</span>
-<a name="line-71"></a>
-<a name="line-72"></a><a name="chunk"></a><span class='hs-comment'>-- | Optimize a list of top-level entities</span>
-<a name="line-73"></a><span class='hs-definition'>chunk</span>                                 <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadState</span> <span class='hs-conid'>PassState</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>Module</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>Module</span>
-<a name="line-74"></a><span class='hs-definition'>chunk</span>                                  <span class='hs-keyglyph'>=</span> <span class='hs-varid'>mapM</span> <span class='hs-varid'>toplevelEntity</span>
-<a name="line-75"></a>
-<a name="line-76"></a><a name="toplevelEntity"></a><span class='hs-comment'>-- | Optimize a top-level entity</span>
-<a name="line-77"></a><span class='hs-definition'>toplevelEntity</span>                        <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadState</span> <span class='hs-conid'>PassState</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>ToplevelEntity</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>ToplevelEntity</span>
-<a name="line-78"></a><span class='hs-definition'>toplevelEntity</span> <span class='hs-layout'>(</span><span class='hs-conid'>Function</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>ret</span> <span class='hs-varid'>args</span> <span class='hs-keyword'>as</span> <span class='hs-varid'>blk</span><span class='hs-layout'>)</span>
-<a name="line-79"></a>                                       <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
-<a name="line-80"></a>                                           <span class='hs-varid'>put</span> <span class='hs-conid'>[]</span>
-<a name="line-81"></a>                                           <span class='hs-varid'>blk'</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>mapM</span> <span class='hs-varid'>stat</span> <span class='hs-varid'>blk</span>
-<a name="line-82"></a>                                           <span class='hs-varid'>return</span> <span class='hs-varop'>$</span> <span class='hs-conid'>Function</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>ret</span> <span class='hs-varid'>args</span> <span class='hs-keyword'>as</span> <span class='hs-layout'>(</span><span class='hs-varid'>concat</span> <span class='hs-varid'>blk'</span><span class='hs-layout'>)</span>
-<a name="line-83"></a><span class='hs-definition'>toplevelEntity</span> <span class='hs-varid'>x</span>                       <span class='hs-keyglyph'>=</span> <span class='hs-varid'>return</span> <span class='hs-varid'>x</span>
-<a name="line-84"></a>
-<a name="line-85"></a>
-<a name="line-86"></a><a name="stat"></a><span class='hs-comment'>-- | Optimize a statement</span>
-<a name="line-87"></a><span class='hs-definition'>stat</span>                                  <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadState</span> <span class='hs-conid'>PassState</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>Statement</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>Block</span>
-<a name="line-88"></a><span class='hs-definition'>stat</span> <span class='hs-layout'>(</span><span class='hs-conid'>Assignment</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>e</span><span class='hs-layout'>)</span>                 <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
-<a name="line-89"></a>                                           <span class='hs-varid'>xss</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>mapM</span> <span class='hs-varid'>popStatement</span> <span class='hs-layout'>(</span><span class='hs-varid'>vars</span> <span class='hs-varid'>e</span><span class='hs-layout'>)</span>
-<a name="line-90"></a>                                           <span class='hs-varid'>pushStatement</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>e</span>
-<a name="line-91"></a>                                           <span class='hs-varid'>return</span> <span class='hs-varop'>$</span> <span class='hs-varid'>concat</span> <span class='hs-varid'>xss</span>
-<a name="line-92"></a><span class='hs-definition'>stat</span> <span class='hs-varid'>s</span><span class='hs-keyglyph'>@</span><span class='hs-layout'>(</span><span class='hs-conid'>Return</span> <span class='hs-keyword'>_</span> <span class='hs-varid'>e</span><span class='hs-layout'>)</span>                    <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
-<a name="line-93"></a>                                           <span class='hs-varid'>xss</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>mapM</span> <span class='hs-varid'>popStatement</span> <span class='hs-layout'>(</span><span class='hs-varid'>vars</span> <span class='hs-varid'>e</span><span class='hs-layout'>)</span>
-<a name="line-94"></a>                                           <span class='hs-varid'>return</span> <span class='hs-varop'>$</span> <span class='hs-varid'>concat</span> <span class='hs-varid'>xss</span> <span class='hs-varop'>++</span> <span class='hs-keyglyph'>[</span><span class='hs-varid'>s</span><span class='hs-keyglyph'>]</span>
-<a name="line-95"></a><span class='hs-definition'>stat</span> <span class='hs-conid'>Flush</span>                             <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
-<a name="line-96"></a>                                           <span class='hs-varid'>st</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>get</span>
-<a name="line-97"></a>                                           <span class='hs-varid'>put</span> <span class='hs-conid'>[]</span>
-<a name="line-98"></a>                                           <span class='hs-varid'>return</span> <span class='hs-varop'>$</span> <span class='hs-varid'>map</span> <span class='hs-layout'>(</span><span class='hs-varid'>uncurry</span> <span class='hs-conid'>Assignment</span><span class='hs-layout'>)</span> <span class='hs-varid'>st</span>
-<a name="line-99"></a><span class='hs-definition'>stat</span> <span class='hs-varid'>x</span>                                 <span class='hs-keyglyph'>=</span> <span class='hs-varid'>return</span> <span class='hs-keyglyph'>[</span><span class='hs-varid'>x</span><span class='hs-keyglyph'>]</span>
-<a name="line-100"></a>
-<a name="line-101"></a>
-<a name="line-102"></a><a name="vars"></a><span class='hs-comment'>-- | Given an expression, return the variable names it references</span>
-<a name="line-103"></a><span class='hs-definition'>vars</span>                                  <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Expr</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>String</span><span class='hs-keyglyph'>]</span>
-<a name="line-104"></a><span class='hs-definition'>vars</span>                                   <span class='hs-keyglyph'>=</span> <span class='hs-varid'>concatMap</span> <span class='hs-varid'>vars'</span> <span class='hs-varop'>.</span> <span class='hs-varid'>universe</span>
-<a name="line-105"></a>
-<a name="line-106"></a><a name="vars'"></a><span class='hs-comment'>-- | Given an expresion, if it is variable, return its name.  Otherwise, return an empty list</span>
-<a name="line-107"></a><span class='hs-definition'>vars'</span>                                 <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Expr</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>String</span><span class='hs-keyglyph'>]</span>
-<a name="line-108"></a><span class='hs-definition'>vars'</span> <span class='hs-layout'>(</span><span class='hs-conid'>ExprVar</span> <span class='hs-varid'>nm</span><span class='hs-layout'>)</span>                     <span class='hs-keyglyph'>=</span> <span class='hs-keyglyph'>[</span><span class='hs-varid'>nm</span><span class='hs-keyglyph'>]</span>
-<a name="line-109"></a><span class='hs-definition'>vars'</span> <span class='hs-keyword'>_</span>                                <span class='hs-keyglyph'>=</span> <span class='hs-conid'>[]</span>
-<a name="line-110"></a>
-<a name="line-111"></a>
-<a name="line-112"></a><a name="pushStatement"></a><span class='hs-comment'>-- | Push a statement that may be dead</span>
-<a name="line-113"></a><span class='hs-definition'>pushStatement</span>                         <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadState</span> <span class='hs-conid'>PassState</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>String</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>Expr</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>()</span>
-<a name="line-114"></a><span class='hs-definition'>pushStatement</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>x</span>                     <span class='hs-keyglyph'>=</span> <span class='hs-varid'>modify</span> <span class='hs-layout'>(</span><span class='hs-layout'>(</span><span class='hs-varid'>nm</span><span class='hs-layout'>,</span> <span class='hs-varid'>x</span><span class='hs-layout'>)</span> <span class='hs-conop'>:</span><span class='hs-layout'>)</span>
-<a name="line-115"></a>
-<a name="line-116"></a>
-<a name="line-117"></a><a name="popStatement"></a><span class='hs-comment'>-- | Lookup a statement that is now known to be undead.  Remove it from the list of dead instructions.</span>
-<a name="line-118"></a><span class='hs-definition'>popStatement</span>                          <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadState</span> <span class='hs-conid'>PassState</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>String</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>Statement</span><span class='hs-keyglyph'>]</span>
-<a name="line-119"></a><span class='hs-definition'>popStatement</span> <span class='hs-varid'>nm</span>                          <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span> 
-<a name="line-120"></a>                                             <span class='hs-varid'>xs</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>get</span>
-<a name="line-121"></a>                                             <span class='hs-keyword'>case</span> <span class='hs-varid'>lookup</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>xs</span> <span class='hs-keyword'>of</span>
-<a name="line-122"></a>                                               <span class='hs-conid'>Just</span> <span class='hs-varid'>x</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-keyword'>do</span>
-<a name="line-123"></a>                                                 <span class='hs-varid'>modify</span> <span class='hs-layout'>(</span><span class='hs-varid'>delete</span> <span class='hs-layout'>(</span><span class='hs-varid'>nm</span><span class='hs-layout'>,</span><span class='hs-varid'>x</span><span class='hs-layout'>)</span><span class='hs-layout'>)</span>
-<a name="line-124"></a>                                                 <span class='hs-varid'>return</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>Assignment</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>x</span><span class='hs-keyglyph'>]</span>
-<a name="line-125"></a>                                               <span class='hs-conid'>Nothing</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>return</span> <span class='hs-conid'>[]</span>
-<a name="line-126"></a>
+<a name="line-54"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>LlvmData</span>
+<a name="line-55"></a>
+<a name="line-56"></a><a name="PassState"></a><span class='hs-comment'>-- | A list of unreferenced instructions.</span>
+<a name="line-57"></a><a name="PassState"></a><span class='hs-comment'>--   The String is a variable name, and</span>
+<a name="line-58"></a><a name="PassState"></a><span class='hs-comment'>--   the Expr is the value assigned to it.</span>
+<a name="line-59"></a><a name="PassState"></a><span class='hs-keyword'>type</span> <span class='hs-conid'>PassState</span> <span class='hs-keyglyph'>=</span> <span class='hs-keyglyph'>[</span><span class='hs-layout'>(</span><span class='hs-conid'>String</span><span class='hs-layout'>,</span> <span class='hs-conid'>Expr</span><span class='hs-layout'>)</span><span class='hs-keyglyph'>]</span>
+<a name="line-60"></a>
+<a name="line-61"></a><a name="name"></a><span class='hs-comment'>-- | The name of this optimization pass</span>
+<a name="line-62"></a><span class='hs-definition'>name</span>                                  <span class='hs-keyglyph'>::</span> <span class='hs-conid'>String</span>
+<a name="line-63"></a><span class='hs-definition'>name</span>                                   <span class='hs-keyglyph'>=</span> <span class='hs-str'>"die"</span>
+<a name="line-64"></a>
+<a name="line-65"></a><a name="emptyState"></a><span class='hs-comment'>-- | The initial state</span>
+<a name="line-66"></a><span class='hs-definition'>emptyState</span>                            <span class='hs-keyglyph'>::</span> <span class='hs-conid'>PassState</span>
+<a name="line-67"></a><span class='hs-definition'>emptyState</span>                             <span class='hs-keyglyph'>=</span> <span class='hs-conid'>[]</span>
+<a name="line-68"></a>
+<a name="line-69"></a><a name="chunk"></a><span class='hs-comment'>-- | Optimize a list of top-level entities</span>
+<a name="line-70"></a><span class='hs-definition'>chunk</span>                                 <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Monad</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>Module</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>StateT</span> <span class='hs-conid'>PassState</span> <span class='hs-varid'>m</span> <span class='hs-conid'>Module</span>
+<a name="line-71"></a><span class='hs-definition'>chunk</span>                                  <span class='hs-keyglyph'>=</span> <span class='hs-varid'>mapM</span> <span class='hs-varid'>toplevelEntity</span>
+<a name="line-72"></a>
+<a name="line-73"></a><a name="toplevelEntity"></a><span class='hs-comment'>-- | Optimize a top-level entity</span>
+<a name="line-74"></a><span class='hs-definition'>toplevelEntity</span>                        <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Monad</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>ToplevelEntity</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>StateT</span> <span class='hs-conid'>PassState</span> <span class='hs-varid'>m</span> <span class='hs-conid'>ToplevelEntity</span>
+<a name="line-75"></a><span class='hs-definition'>toplevelEntity</span> <span class='hs-layout'>(</span><span class='hs-conid'>Function</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>ret</span> <span class='hs-varid'>args</span> <span class='hs-keyword'>as</span> <span class='hs-varid'>blk</span><span class='hs-layout'>)</span>
+<a name="line-76"></a>                                       <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
+<a name="line-77"></a>                                           <span class='hs-varid'>put</span> <span class='hs-conid'>[]</span>
+<a name="line-78"></a>                                           <span class='hs-varid'>blk'</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>mapM</span> <span class='hs-varid'>stat</span> <span class='hs-varid'>blk</span>
+<a name="line-79"></a>                                           <span class='hs-varid'>return</span> <span class='hs-varop'>$</span> <span class='hs-conid'>Function</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>ret</span> <span class='hs-varid'>args</span> <span class='hs-keyword'>as</span> <span class='hs-layout'>(</span><span class='hs-varid'>concat</span> <span class='hs-varid'>blk'</span><span class='hs-layout'>)</span>
+<a name="line-80"></a><span class='hs-definition'>toplevelEntity</span> <span class='hs-varid'>x</span>                       <span class='hs-keyglyph'>=</span> <span class='hs-varid'>return</span> <span class='hs-varid'>x</span>
+<a name="line-81"></a>
+<a name="line-82"></a>
+<a name="line-83"></a><a name="stat"></a><span class='hs-comment'>-- | Optimize a statement</span>
+<a name="line-84"></a><span class='hs-definition'>stat</span>                                  <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Monad</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>Statement</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>StateT</span> <span class='hs-conid'>PassState</span> <span class='hs-varid'>m</span> <span class='hs-conid'>Block</span>
+<a name="line-85"></a><span class='hs-definition'>stat</span> <span class='hs-layout'>(</span><span class='hs-conid'>Assignment</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>e</span><span class='hs-layout'>)</span>                 <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
+<a name="line-86"></a>                                           <span class='hs-varid'>xss</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>mapM</span> <span class='hs-varid'>popStatement</span> <span class='hs-layout'>(</span><span class='hs-varid'>vars</span> <span class='hs-varid'>e</span><span class='hs-layout'>)</span>
+<a name="line-87"></a>                                           <span class='hs-varid'>pushStatement</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>e</span>
+<a name="line-88"></a>                                           <span class='hs-varid'>return</span> <span class='hs-varop'>$</span> <span class='hs-varid'>concat</span> <span class='hs-varid'>xss</span>
+<a name="line-89"></a><span class='hs-definition'>stat</span> <span class='hs-varid'>s</span><span class='hs-keyglyph'>@</span><span class='hs-layout'>(</span><span class='hs-conid'>Return</span> <span class='hs-keyword'>_</span> <span class='hs-varid'>e</span><span class='hs-layout'>)</span>                    <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
+<a name="line-90"></a>                                           <span class='hs-varid'>xss</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>mapM</span> <span class='hs-varid'>popStatement</span> <span class='hs-layout'>(</span><span class='hs-varid'>vars</span> <span class='hs-varid'>e</span><span class='hs-layout'>)</span>
+<a name="line-91"></a>                                           <span class='hs-varid'>return</span> <span class='hs-varop'>$</span> <span class='hs-varid'>concat</span> <span class='hs-varid'>xss</span> <span class='hs-varop'>++</span> <span class='hs-keyglyph'>[</span><span class='hs-varid'>s</span><span class='hs-keyglyph'>]</span>
+<a name="line-92"></a><span class='hs-definition'>stat</span> <span class='hs-conid'>Flush</span>                             <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
+<a name="line-93"></a>                                           <span class='hs-varid'>st</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>get</span>
+<a name="line-94"></a>                                           <span class='hs-varid'>put</span> <span class='hs-conid'>[]</span>
+<a name="line-95"></a>                                           <span class='hs-varid'>return</span> <span class='hs-varop'>$</span> <span class='hs-varid'>map</span> <span class='hs-layout'>(</span><span class='hs-varid'>uncurry</span> <span class='hs-conid'>Assignment</span><span class='hs-layout'>)</span> <span class='hs-varid'>st</span>
+<a name="line-96"></a><span class='hs-definition'>stat</span> <span class='hs-varid'>x</span>                                 <span class='hs-keyglyph'>=</span> <span class='hs-varid'>return</span> <span class='hs-keyglyph'>[</span><span class='hs-varid'>x</span><span class='hs-keyglyph'>]</span>
+<a name="line-97"></a>
+<a name="line-98"></a>
+<a name="line-99"></a><a name="vars"></a><span class='hs-comment'>-- | Given an expression, return the variable names it references</span>
+<a name="line-100"></a><span class='hs-definition'>vars</span>                                  <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Expr</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>String</span><span class='hs-keyglyph'>]</span>
+<a name="line-101"></a><span class='hs-definition'>vars</span>                                   <span class='hs-keyglyph'>=</span> <span class='hs-varid'>concatMap</span> <span class='hs-varid'>vars'</span> <span class='hs-varop'>.</span> <span class='hs-varid'>universe</span>
+<a name="line-102"></a>
+<a name="line-103"></a><a name="vars'"></a><span class='hs-comment'>-- | Given an expresion, if it is variable, return its name.  Otherwise, return an empty list</span>
+<a name="line-104"></a><span class='hs-definition'>vars'</span>                                 <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Expr</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>String</span><span class='hs-keyglyph'>]</span>
+<a name="line-105"></a><span class='hs-definition'>vars'</span> <span class='hs-layout'>(</span><span class='hs-conid'>ExprVar</span> <span class='hs-varid'>nm</span><span class='hs-layout'>)</span>                     <span class='hs-keyglyph'>=</span> <span class='hs-keyglyph'>[</span><span class='hs-varid'>nm</span><span class='hs-keyglyph'>]</span>
+<a name="line-106"></a><span class='hs-definition'>vars'</span> <span class='hs-keyword'>_</span>                                <span class='hs-keyglyph'>=</span> <span class='hs-conid'>[]</span>
+<a name="line-107"></a>
+<a name="line-108"></a>
+<a name="line-109"></a><a name="pushStatement"></a><span class='hs-comment'>-- | Push a statement that may be dead</span>
+<a name="line-110"></a><span class='hs-definition'>pushStatement</span>                         <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Monad</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>String</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>Expr</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>StateT</span> <span class='hs-conid'>PassState</span> <span class='hs-varid'>m</span> <span class='hs-conid'>()</span>
+<a name="line-111"></a><span class='hs-definition'>pushStatement</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>x</span>                     <span class='hs-keyglyph'>=</span> <span class='hs-varid'>modify</span> <span class='hs-layout'>(</span><span class='hs-layout'>(</span><span class='hs-varid'>nm</span><span class='hs-layout'>,</span> <span class='hs-varid'>x</span><span class='hs-layout'>)</span> <span class='hs-conop'>:</span><span class='hs-layout'>)</span>
+<a name="line-112"></a>
+<a name="line-113"></a>
+<a name="line-114"></a><a name="popStatement"></a><span class='hs-comment'>-- | Lookup a statement that is now known to be undead.  Remove it from the list of dead instructions.</span>
+<a name="line-115"></a><span class='hs-definition'>popStatement</span>                          <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Monad</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>String</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>StateT</span> <span class='hs-conid'>PassState</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>Statement</span><span class='hs-keyglyph'>]</span>
+<a name="line-116"></a><span class='hs-definition'>popStatement</span> <span class='hs-varid'>nm</span>                          <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span> 
+<a name="line-117"></a>                                             <span class='hs-varid'>xs</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>get</span>
+<a name="line-118"></a>                                             <span class='hs-keyword'>case</span> <span class='hs-varid'>lookup</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>xs</span> <span class='hs-keyword'>of</span>
+<a name="line-119"></a>                                               <span class='hs-conid'>Just</span> <span class='hs-varid'>x</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-keyword'>do</span>
+<a name="line-120"></a>                                                 <span class='hs-varid'>modify</span> <span class='hs-layout'>(</span><span class='hs-varid'>delete</span> <span class='hs-layout'>(</span><span class='hs-varid'>nm</span><span class='hs-layout'>,</span><span class='hs-varid'>x</span><span class='hs-layout'>)</span><span class='hs-layout'>)</span>
+<a name="line-121"></a>                                                 <span class='hs-varid'>return</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>Assignment</span> <span class='hs-varid'>nm</span> <span class='hs-varid'>x</span><span class='hs-keyglyph'>]</span>
+<a name="line-122"></a>                                               <span class='hs-conid'>Nothing</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>return</span> <span class='hs-conid'>[]</span>
+<a name="line-123"></a>
 </pre></body>
 </html>

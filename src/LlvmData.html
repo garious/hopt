@@ -30,44 +30,48 @@
 <a name="line-21"></a><a name="Module"></a><span class='hs-keyword'>type</span> <span class='hs-conid'>Module</span>                    <span class='hs-keyglyph'>=</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>ToplevelEntity</span><span class='hs-keyglyph'>]</span>
 <a name="line-22"></a>
 <a name="line-23"></a><a name="ToplevelEntity"></a><span class='hs-comment'>-- | A top-level entity within a module</span>
-<a name="line-24"></a><a name="ToplevelEntity"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>ToplevelEntity</span>            <span class='hs-keyglyph'>=</span> <span class='hs-conid'>Function</span> <span class='hs-conid'>String</span> <span class='hs-conid'>String</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>String</span><span class='hs-keyglyph'>]</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>String</span><span class='hs-keyglyph'>]</span> <span class='hs-conid'>Block</span>
+<a name="line-24"></a><a name="ToplevelEntity"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>ToplevelEntity</span>            <span class='hs-keyglyph'>=</span> <span class='hs-conid'>Function</span> <span class='hs-conid'>String</span> <span class='hs-conid'>String</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>Parameter</span><span class='hs-keyglyph'>]</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>String</span><span class='hs-keyglyph'>]</span> <span class='hs-conid'>Block</span>
 <a name="line-25"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>Target</span> <span class='hs-conid'>String</span> <span class='hs-conid'>String</span>
 <a name="line-26"></a>                                 <span class='hs-keyword'>deriving</span> <span class='hs-layout'>(</span><span class='hs-conid'>Show</span><span class='hs-layout'>,</span> <span class='hs-conid'>Eq</span><span class='hs-layout'>)</span>
 <a name="line-27"></a>
-<a name="line-28"></a><a name="Block"></a><span class='hs-comment'>-- | A block of statements</span>
-<a name="line-29"></a><a name="Block"></a><span class='hs-keyword'>type</span> <span class='hs-conid'>Block</span>                     <span class='hs-keyglyph'>=</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>Statement</span><span class='hs-keyglyph'>]</span>
-<a name="line-30"></a>
-<a name="line-31"></a><a name="Statement"></a><span class='hs-comment'>-- | A statement</span>
-<a name="line-32"></a><a name="Statement"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>Statement</span>                 <span class='hs-keyglyph'>=</span> <span class='hs-conid'>Assignment</span> <span class='hs-conid'>String</span> <span class='hs-conid'>Expr</span>
-<a name="line-33"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>Return</span> <span class='hs-conid'>String</span> <span class='hs-conid'>Expr</span>
-<a name="line-34"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>Label</span> <span class='hs-conid'>String</span>
-<a name="line-35"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>Branch</span> <span class='hs-conid'>String</span>
-<a name="line-36"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>BranchCond</span> <span class='hs-conid'>Expr</span> <span class='hs-conid'>String</span> <span class='hs-conid'>String</span>
-<a name="line-37"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>Flush</span>
-<a name="line-38"></a>                                 <span class='hs-keyword'>deriving</span> <span class='hs-layout'>(</span><span class='hs-conid'>Show</span><span class='hs-layout'>,</span> <span class='hs-conid'>Eq</span><span class='hs-layout'>)</span>
-<a name="line-39"></a>
-<a name="line-40"></a><a name="Type"></a><span class='hs-comment'>-- | A type</span>
-<a name="line-41"></a><a name="Type"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>Type</span>                      <span class='hs-keyglyph'>=</span> <span class='hs-conid'>TyInteger</span>
-<a name="line-42"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>TyString</span>
-<a name="line-43"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>TyDynamic</span>
-<a name="line-44"></a>                                 <span class='hs-keyword'>deriving</span> <span class='hs-layout'>(</span><span class='hs-conid'>Show</span><span class='hs-layout'>,</span> <span class='hs-conid'>Eq</span><span class='hs-layout'>)</span>
-<a name="line-45"></a>
-<a name="line-46"></a><a name="Expr"></a><span class='hs-comment'>-- | An expression</span>
-<a name="line-47"></a><a name="Expr"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>Expr</span>                      <span class='hs-keyglyph'>=</span> <span class='hs-conid'>ExprConstant</span> <span class='hs-conid'>Literal</span>
-<a name="line-48"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>ExprVar</span> <span class='hs-conid'>String</span>
-<a name="line-49"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>ExprAdd</span> <span class='hs-conid'>String</span> <span class='hs-conid'>Expr</span> <span class='hs-conid'>Expr</span>
-<a name="line-50"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>ExprPhi</span> <span class='hs-conid'>String</span> <span class='hs-keyglyph'>[</span><span class='hs-layout'>(</span><span class='hs-conid'>Expr</span><span class='hs-layout'>,</span> <span class='hs-conid'>String</span><span class='hs-layout'>)</span><span class='hs-keyglyph'>]</span>
-<a name="line-51"></a>                                 <span class='hs-keyword'>deriving</span> <span class='hs-layout'>(</span><span class='hs-conid'>Show</span><span class='hs-layout'>,</span> <span class='hs-conid'>Eq</span><span class='hs-layout'>,</span> <span class='hs-conid'>Data</span><span class='hs-layout'>,</span> <span class='hs-conid'>Typeable</span><span class='hs-layout'>)</span>
-<a name="line-52"></a>
-<a name="line-53"></a><a name="Literal"></a><span class='hs-comment'>-- | A literal value</span>
-<a name="line-54"></a><a name="Literal"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>Literal</span>                   <span class='hs-keyglyph'>=</span> <span class='hs-conid'>LitString</span> <span class='hs-conid'>String</span>
-<a name="line-55"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>LitInteger</span> <span class='hs-conid'>Integer</span>
-<a name="line-56"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>LitBool</span> <span class='hs-conid'>Bool</span>
-<a name="line-57"></a>                                 <span class='hs-keyword'>deriving</span> <span class='hs-layout'>(</span><span class='hs-conid'>Show</span><span class='hs-layout'>,</span> <span class='hs-conid'>Eq</span><span class='hs-layout'>,</span> <span class='hs-conid'>Data</span><span class='hs-layout'>,</span> <span class='hs-conid'>Typeable</span><span class='hs-layout'>)</span>
-<a name="line-58"></a>
-<a name="line-59"></a>
-<a name="line-60"></a><a name="instance%20Plated%20Expr"></a><span class='hs-keyword'>instance</span> <span class='hs-conid'>Plated</span> <span class='hs-conid'>Expr</span> <span class='hs-keyword'>where</span>
-<a name="line-61"></a>   <span class='hs-varid'>plate</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>uniplate</span>
+<a name="line-28"></a><a name="Parameter"></a><span class='hs-comment'>-- | A function parameter</span>
+<a name="line-29"></a><a name="Parameter"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>Parameter</span>                 <span class='hs-keyglyph'>=</span> <span class='hs-conid'>Parameter</span> <span class='hs-conid'>String</span> <span class='hs-conid'>String</span>  <span class='hs-comment'>-- Type, Name</span>
+<a name="line-30"></a>                                 <span class='hs-keyword'>deriving</span> <span class='hs-layout'>(</span><span class='hs-conid'>Show</span><span class='hs-layout'>,</span> <span class='hs-conid'>Eq</span><span class='hs-layout'>)</span>
+<a name="line-31"></a>
+<a name="line-32"></a><a name="Block"></a><span class='hs-comment'>-- | A block of statements</span>
+<a name="line-33"></a><a name="Block"></a><span class='hs-keyword'>type</span> <span class='hs-conid'>Block</span>                     <span class='hs-keyglyph'>=</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>Statement</span><span class='hs-keyglyph'>]</span>
+<a name="line-34"></a>
+<a name="line-35"></a><a name="Statement"></a><span class='hs-comment'>-- | A statement</span>
+<a name="line-36"></a><a name="Statement"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>Statement</span>                 <span class='hs-keyglyph'>=</span> <span class='hs-conid'>Assignment</span> <span class='hs-conid'>String</span> <span class='hs-conid'>Expr</span>
+<a name="line-37"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>Return</span> <span class='hs-conid'>String</span> <span class='hs-conid'>Expr</span>
+<a name="line-38"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>Label</span> <span class='hs-conid'>String</span>
+<a name="line-39"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>Branch</span> <span class='hs-conid'>String</span>
+<a name="line-40"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>BranchCond</span> <span class='hs-conid'>Expr</span> <span class='hs-conid'>String</span> <span class='hs-conid'>String</span>
+<a name="line-41"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>Flush</span>
+<a name="line-42"></a>                                 <span class='hs-keyword'>deriving</span> <span class='hs-layout'>(</span><span class='hs-conid'>Show</span><span class='hs-layout'>,</span> <span class='hs-conid'>Eq</span><span class='hs-layout'>)</span>
+<a name="line-43"></a>
+<a name="line-44"></a><a name="Type"></a><span class='hs-comment'>-- | A type</span>
+<a name="line-45"></a><a name="Type"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>Type</span>                      <span class='hs-keyglyph'>=</span> <span class='hs-conid'>TyInteger</span>
+<a name="line-46"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>TyString</span>
+<a name="line-47"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>TyDynamic</span>
+<a name="line-48"></a>                                 <span class='hs-keyword'>deriving</span> <span class='hs-layout'>(</span><span class='hs-conid'>Show</span><span class='hs-layout'>,</span> <span class='hs-conid'>Eq</span><span class='hs-layout'>)</span>
+<a name="line-49"></a>
+<a name="line-50"></a><a name="Expr"></a><span class='hs-comment'>-- | An expression</span>
+<a name="line-51"></a><a name="Expr"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>Expr</span>                      <span class='hs-keyglyph'>=</span> <span class='hs-conid'>ExprConstant</span> <span class='hs-conid'>Literal</span>
+<a name="line-52"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>ExprVar</span> <span class='hs-conid'>String</span>
+<a name="line-53"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>ExprAdd</span> <span class='hs-conid'>String</span> <span class='hs-conid'>Expr</span> <span class='hs-conid'>Expr</span>
+<a name="line-54"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>ExprPhi</span> <span class='hs-conid'>String</span> <span class='hs-keyglyph'>[</span><span class='hs-layout'>(</span><span class='hs-conid'>Expr</span><span class='hs-layout'>,</span> <span class='hs-conid'>String</span><span class='hs-layout'>)</span><span class='hs-keyglyph'>]</span>
+<a name="line-55"></a>                                 <span class='hs-keyword'>deriving</span> <span class='hs-layout'>(</span><span class='hs-conid'>Show</span><span class='hs-layout'>,</span> <span class='hs-conid'>Eq</span><span class='hs-layout'>,</span> <span class='hs-conid'>Data</span><span class='hs-layout'>,</span> <span class='hs-conid'>Typeable</span><span class='hs-layout'>)</span>
+<a name="line-56"></a>
+<a name="line-57"></a><a name="Literal"></a><span class='hs-comment'>-- | A literal value</span>
+<a name="line-58"></a><a name="Literal"></a><span class='hs-keyword'>data</span> <span class='hs-conid'>Literal</span>                   <span class='hs-keyglyph'>=</span> <span class='hs-conid'>LitString</span> <span class='hs-conid'>String</span>
+<a name="line-59"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>LitInteger</span> <span class='hs-conid'>Integer</span>
+<a name="line-60"></a>                               <span class='hs-keyglyph'>|</span> <span class='hs-conid'>LitBool</span> <span class='hs-conid'>Bool</span>
+<a name="line-61"></a>                                 <span class='hs-keyword'>deriving</span> <span class='hs-layout'>(</span><span class='hs-conid'>Show</span><span class='hs-layout'>,</span> <span class='hs-conid'>Eq</span><span class='hs-layout'>,</span> <span class='hs-conid'>Data</span><span class='hs-layout'>,</span> <span class='hs-conid'>Typeable</span><span class='hs-layout'>)</span>
 <a name="line-62"></a>
+<a name="line-63"></a>
+<a name="line-64"></a><a name="instance%20Plated%20Expr"></a><span class='hs-keyword'>instance</span> <span class='hs-conid'>Plated</span> <span class='hs-conid'>Expr</span> <span class='hs-keyword'>where</span>
+<a name="line-65"></a>   <span class='hs-varid'>plate</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>uniplate</span>
+<a name="line-66"></a>
 </pre></body>
 </html>

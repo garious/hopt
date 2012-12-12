@@ -7,96 +7,103 @@
 <link type='text/css' rel='stylesheet' href='hscolour.css' />
 </head>
 <body>
-<pre><a name="line-1"></a><span class='hs-comment'>-- Oddly, GHC 7.6 finds Parsec 3.1.3 Safe, but GHC 7.4 does not.  So we mark</span>
-<a name="line-2"></a><span class='hs-comment'>-- this module Trustworthy until Travis-CI upgrades.</span>
-<a name="line-3"></a><span class='hs-comment'>{-# LANGUAGE Trustworthy #-}</span>
+<pre><a name="line-1"></a><span class='hs-comment'>{-# LANGUAGE Safe #-}</span>
+<a name="line-2"></a>
+<a name="line-3"></a><span class='hs-comment'>-- | The command-line argument parser for hopt</span>
 <a name="line-4"></a>
-<a name="line-5"></a><span class='hs-comment'>-- | The command-line argument parser for hopt</span>
+<a name="line-5"></a><span class='hs-keyword'>module</span> <span class='hs-conid'>HoptArgParser</span> <span class='hs-keyword'>where</span>
 <a name="line-6"></a>
-<a name="line-7"></a><span class='hs-keyword'>module</span> <span class='hs-conid'>HoptArgParser</span> <span class='hs-keyword'>where</span>
-<a name="line-8"></a>
-<a name="line-9"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Lens</span><span class='hs-varop'>.</span><span class='hs-conid'>Setter</span>
-<a name="line-10"></a>  <span class='hs-layout'>(</span> <span class='hs-layout'>(</span><span class='hs-varop'>%=</span><span class='hs-layout'>)</span>   <span class='hs-comment'>-- modify a lens from a monad</span>
-<a name="line-11"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>.=</span><span class='hs-layout'>)</span>   <span class='hs-comment'>-- assign a lens from a monad</span>
-<a name="line-12"></a>  <span class='hs-layout'>)</span>
-<a name="line-13"></a>
-<a name="line-14"></a><span class='hs-comment'>-- From mtl package</span>
-<a name="line-15"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Monad</span><span class='hs-varop'>.</span><span class='hs-conid'>State</span>
-<a name="line-16"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>runState</span>
-<a name="line-17"></a>  <span class='hs-layout'>)</span>
-<a name="line-18"></a>
-<a name="line-19"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Applicative</span>
-<a name="line-20"></a>  <span class='hs-layout'>(</span> <span class='hs-layout'>(</span><span class='hs-varop'>&lt;*</span><span class='hs-layout'>)</span>
-<a name="line-21"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>*&gt;</span><span class='hs-layout'>)</span>
-<a name="line-22"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>&lt;$&gt;</span><span class='hs-layout'>)</span>
-<a name="line-23"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>&lt;*&gt;</span><span class='hs-layout'>)</span>
-<a name="line-24"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>&lt;|&gt;</span><span class='hs-layout'>)</span>
-<a name="line-25"></a>  <span class='hs-layout'>)</span>
-<a name="line-26"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Text</span><span class='hs-varop'>.</span><span class='hs-conid'>Parsec</span>
-<a name="line-27"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>string</span>
-<a name="line-28"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>&lt;?&gt;</span><span class='hs-layout'>)</span>
-<a name="line-29"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>skipMany</span>
-<a name="line-30"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>satisfy</span>
-<a name="line-31"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>eof</span>
-<a name="line-32"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>many</span>
-<a name="line-33"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>many1</span>
-<a name="line-34"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>spaces</span>
-<a name="line-35"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>runParserT</span>
-<a name="line-36"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>try</span>
-<a name="line-37"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>unexpected</span>
-<a name="line-38"></a>  <span class='hs-layout'>,</span> <span class='hs-conid'>ParseError</span>
-<a name="line-39"></a>  <span class='hs-layout'>)</span>
-<a name="line-40"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>HoptArgData</span>
-<a name="line-41"></a>
-<a name="line-42"></a><a name="defaultCfg"></a><span class='hs-comment'>-- | By default, do no optimizations on stdin, compile to bitcode and output to stdout</span>
-<a name="line-43"></a><span class='hs-definition'>defaultCfg</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Cfg</span>
-<a name="line-44"></a><span class='hs-definition'>defaultCfg</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>Cfg</span> <span class='hs-conid'>[]</span> <span class='hs-str'>"-"</span> <span class='hs-str'>"-"</span> <span class='hs-conid'>False</span>
-<a name="line-45"></a>
-<a name="line-46"></a><a name="parseArguments"></a><span class='hs-comment'>-- | Parse the argument list.  Return either an error of the Hopt configuration</span>
-<a name="line-47"></a><span class='hs-definition'>parseArguments</span> <span class='hs-keyglyph'>::</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>String</span><span class='hs-keyglyph'>]</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>String</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>Either</span> <span class='hs-conid'>ParseError</span> <span class='hs-conid'>Cfg</span>
-<a name="line-48"></a><span class='hs-definition'>parseArguments</span> <span class='hs-varid'>optPassNames</span> <span class='hs-varid'>str</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>const</span> <span class='hs-varid'>cfg</span> <span class='hs-varop'>`fmap`</span> <span class='hs-varid'>result</span>
-<a name="line-49"></a>  <span class='hs-keyword'>where</span>
-<a name="line-50"></a>    <span class='hs-layout'>(</span><span class='hs-varid'>result</span><span class='hs-layout'>,</span> <span class='hs-varid'>cfg</span><span class='hs-layout'>)</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>runState</span> <span class='hs-layout'>(</span><span class='hs-varid'>argParser</span> <span class='hs-varid'>str</span><span class='hs-layout'>)</span> <span class='hs-varid'>defaultCfg</span>
-<a name="line-51"></a>
-<a name="line-52"></a>    <span class='hs-varid'>argParser</span> <span class='hs-varid'>s</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>runParserT</span> <span class='hs-varid'>arguments</span> <span class='hs-conid'>()</span> <span class='hs-str'>"argument list"</span> <span class='hs-varid'>s</span>
-<a name="line-53"></a>
-<a name="line-54"></a>    <span class='hs-varid'>arguments</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>skipMany</span> <span class='hs-varid'>argument</span> <span class='hs-varop'>&lt;*</span> <span class='hs-varid'>eof</span>
-<a name="line-55"></a>
-<a name="line-56"></a>    <span class='hs-varid'>argument</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>optionArg</span>
-<a name="line-57"></a>           <span class='hs-varop'>&lt;|&gt;</span> <span class='hs-varid'>optPassFlag</span> <span class='hs-varid'>optPassNames</span>
-<a name="line-58"></a>           <span class='hs-varop'>&lt;|&gt;</span> <span class='hs-varid'>inputFileArg</span>
-<a name="line-59"></a>           <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"argument"</span>
+<a name="line-7"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Lens</span><span class='hs-varop'>.</span><span class='hs-conid'>Setter</span>
+<a name="line-8"></a>  <span class='hs-layout'>(</span> <span class='hs-layout'>(</span><span class='hs-varop'>%=</span><span class='hs-layout'>)</span>   <span class='hs-comment'>-- modify a lens from a monad</span>
+<a name="line-9"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>.=</span><span class='hs-layout'>)</span>   <span class='hs-comment'>-- assign a lens from a monad</span>
+<a name="line-10"></a>  <span class='hs-layout'>)</span>
+<a name="line-11"></a>
+<a name="line-12"></a><span class='hs-comment'>-- From mtl package</span>
+<a name="line-13"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Monad</span><span class='hs-varop'>.</span><span class='hs-conid'>Trans</span><span class='hs-varop'>.</span><span class='hs-conid'>State</span>
+<a name="line-14"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>runState</span>
+<a name="line-15"></a>  <span class='hs-layout'>)</span>
+<a name="line-16"></a>
+<a name="line-17"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Applicative</span>
+<a name="line-18"></a>  <span class='hs-layout'>(</span> <span class='hs-layout'>(</span><span class='hs-varop'>&lt;*</span><span class='hs-layout'>)</span>
+<a name="line-19"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>*&gt;</span><span class='hs-layout'>)</span>
+<a name="line-20"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>&lt;$&gt;</span><span class='hs-layout'>)</span>
+<a name="line-21"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>&lt;*&gt;</span><span class='hs-layout'>)</span>
+<a name="line-22"></a>  <span class='hs-layout'>,</span> <span class='hs-layout'>(</span><span class='hs-varop'>&lt;|&gt;</span><span class='hs-layout'>)</span>
+<a name="line-23"></a>  <span class='hs-layout'>)</span>
+<a name="line-24"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Text</span><span class='hs-varop'>.</span><span class='hs-conid'>Parsec</span><span class='hs-varop'>.</span><span class='hs-conid'>Prim</span>
+<a name="line-25"></a>  <span class='hs-layout'>(</span> <span class='hs-layout'>(</span><span class='hs-varop'>&lt;?&gt;</span><span class='hs-layout'>)</span>
+<a name="line-26"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>many</span>
+<a name="line-27"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>try</span>
+<a name="line-28"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>runParserT</span>
+<a name="line-29"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>unexpected</span>
+<a name="line-30"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>skipMany</span>
+<a name="line-31"></a>  <span class='hs-layout'>)</span>
+<a name="line-32"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Text</span><span class='hs-varop'>.</span><span class='hs-conid'>Parsec</span><span class='hs-varop'>.</span><span class='hs-conid'>String</span>
+<a name="line-33"></a>  <span class='hs-layout'>(</span> <span class='hs-comment'>-- Import instances</span>
+<a name="line-34"></a>  <span class='hs-layout'>)</span>
+<a name="line-35"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Text</span><span class='hs-varop'>.</span><span class='hs-conid'>Parsec</span><span class='hs-varop'>.</span><span class='hs-conid'>Combinator</span>
+<a name="line-36"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>eof</span>
+<a name="line-37"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>many1</span>
+<a name="line-38"></a>  <span class='hs-layout'>)</span>
+<a name="line-39"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Text</span><span class='hs-varop'>.</span><span class='hs-conid'>Parsec</span><span class='hs-varop'>.</span><span class='hs-conid'>Char</span>
+<a name="line-40"></a>  <span class='hs-layout'>(</span> <span class='hs-varid'>string</span>
+<a name="line-41"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>satisfy</span>
+<a name="line-42"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>spaces</span>
+<a name="line-43"></a>  <span class='hs-layout'>)</span>
+<a name="line-44"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Text</span><span class='hs-varop'>.</span><span class='hs-conid'>Parsec</span><span class='hs-varop'>.</span><span class='hs-conid'>Error</span>
+<a name="line-45"></a>  <span class='hs-layout'>(</span> <span class='hs-conid'>ParseError</span>
+<a name="line-46"></a>  <span class='hs-layout'>)</span>
+<a name="line-47"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>HoptArgData</span>
+<a name="line-48"></a>
+<a name="line-49"></a><a name="defaultCfg"></a><span class='hs-comment'>-- | By default, do no optimizations on stdin, compile to bitcode and output to stdout</span>
+<a name="line-50"></a><span class='hs-definition'>defaultCfg</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Cfg</span>
+<a name="line-51"></a><span class='hs-definition'>defaultCfg</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>Cfg</span> <span class='hs-conid'>[]</span> <span class='hs-str'>"-"</span> <span class='hs-str'>"-"</span> <span class='hs-conid'>False</span>
+<a name="line-52"></a>
+<a name="line-53"></a><a name="parseArguments"></a><span class='hs-comment'>-- | Parse the argument list.  Return either an error of the Hopt configuration</span>
+<a name="line-54"></a><span class='hs-definition'>parseArguments</span> <span class='hs-keyglyph'>::</span> <span class='hs-keyglyph'>[</span><span class='hs-conid'>String</span><span class='hs-keyglyph'>]</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>String</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>Either</span> <span class='hs-conid'>ParseError</span> <span class='hs-conid'>Cfg</span>
+<a name="line-55"></a><span class='hs-definition'>parseArguments</span> <span class='hs-varid'>optPassNames</span> <span class='hs-varid'>str</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>const</span> <span class='hs-varid'>cfg</span> <span class='hs-varop'>`fmap`</span> <span class='hs-varid'>result</span>
+<a name="line-56"></a>  <span class='hs-keyword'>where</span>
+<a name="line-57"></a>    <span class='hs-layout'>(</span><span class='hs-varid'>result</span><span class='hs-layout'>,</span> <span class='hs-varid'>cfg</span><span class='hs-layout'>)</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>runState</span> <span class='hs-layout'>(</span><span class='hs-varid'>argParser</span> <span class='hs-varid'>str</span><span class='hs-layout'>)</span> <span class='hs-varid'>defaultCfg</span>
+<a name="line-58"></a>
+<a name="line-59"></a>    <span class='hs-varid'>argParser</span> <span class='hs-varid'>s</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>runParserT</span> <span class='hs-varid'>arguments</span> <span class='hs-conid'>()</span> <span class='hs-str'>"argument list"</span> <span class='hs-varid'>s</span>
 <a name="line-60"></a>
-<a name="line-61"></a>    <span class='hs-varid'>optionArg</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>textOutputFlag</span>
-<a name="line-62"></a>            <span class='hs-varop'>&lt;|&gt;</span> <span class='hs-varid'>outputFileFlag</span>
-<a name="line-63"></a>            <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"option"</span>
-<a name="line-64"></a>
-<a name="line-65"></a>    <span class='hs-varid'>textOutputFlag</span> <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
-<a name="line-66"></a>        <span class='hs-varid'>flag</span> <span class='hs-str'>"S"</span>
-<a name="line-67"></a>        <span class='hs-varid'>isText</span> <span class='hs-varop'>.=</span> <span class='hs-conid'>True</span>
-<a name="line-68"></a>    
-<a name="line-69"></a>    <span class='hs-varid'>outputFileFlag</span> <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
-<a name="line-70"></a>        <span class='hs-varid'>flag</span> <span class='hs-str'>"o"</span>
-<a name="line-71"></a>        <span class='hs-varid'>s</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>flagArg</span>
-<a name="line-72"></a>        <span class='hs-varid'>outFile</span> <span class='hs-varop'>.=</span> <span class='hs-varid'>s</span>
-<a name="line-73"></a>    
-<a name="line-74"></a>    <span class='hs-varid'>inputFileArg</span> <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
-<a name="line-75"></a>        <span class='hs-varid'>s</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>argArg</span>
-<a name="line-76"></a>        <span class='hs-varid'>inFile</span> <span class='hs-varop'>.=</span> <span class='hs-varid'>s</span>
-<a name="line-77"></a>      <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"input file"</span>
-<a name="line-78"></a>    
-<a name="line-79"></a>    <span class='hs-varid'>optPassFlag</span> <span class='hs-varid'>nms</span> <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
-<a name="line-80"></a>        <span class='hs-varid'>p</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>string</span> <span class='hs-str'>"-"</span> <span class='hs-varop'>*&gt;</span> <span class='hs-varid'>flagArg</span>
-<a name="line-81"></a>        <span class='hs-keyword'>if</span> <span class='hs-varid'>elem</span> <span class='hs-varid'>p</span> <span class='hs-varid'>nms</span>
-<a name="line-82"></a>          <span class='hs-keyword'>then</span> <span class='hs-varid'>optPasses</span> <span class='hs-varop'>%=</span> <span class='hs-layout'>(</span><span class='hs-varop'>++</span> <span class='hs-keyglyph'>[</span><span class='hs-varid'>p</span><span class='hs-keyglyph'>]</span><span class='hs-layout'>)</span>
-<a name="line-83"></a>          <span class='hs-keyword'>else</span> <span class='hs-varid'>unexpected</span> <span class='hs-varop'>$</span> <span class='hs-str'>"'"</span> <span class='hs-varop'>++</span> <span class='hs-varid'>p</span> <span class='hs-varop'>++</span> <span class='hs-str'>"'.  Expected the name of a known optimization pass."</span>
-<a name="line-84"></a>      <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"name of optimization pass"</span>
+<a name="line-61"></a>    <span class='hs-varid'>arguments</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>skipMany</span> <span class='hs-varid'>argument</span> <span class='hs-varop'>&lt;*</span> <span class='hs-varid'>eof</span>
+<a name="line-62"></a>
+<a name="line-63"></a>    <span class='hs-varid'>argument</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>optionArg</span>
+<a name="line-64"></a>           <span class='hs-varop'>&lt;|&gt;</span> <span class='hs-varid'>optPassFlag</span> <span class='hs-varid'>optPassNames</span>
+<a name="line-65"></a>           <span class='hs-varop'>&lt;|&gt;</span> <span class='hs-varid'>inputFileArg</span>
+<a name="line-66"></a>           <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"argument"</span>
+<a name="line-67"></a>
+<a name="line-68"></a>    <span class='hs-varid'>optionArg</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>textOutputFlag</span>
+<a name="line-69"></a>            <span class='hs-varop'>&lt;|&gt;</span> <span class='hs-varid'>outputFileFlag</span>
+<a name="line-70"></a>            <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"option"</span>
+<a name="line-71"></a>
+<a name="line-72"></a>    <span class='hs-varid'>textOutputFlag</span> <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
+<a name="line-73"></a>        <span class='hs-varid'>flag</span> <span class='hs-str'>"S"</span>
+<a name="line-74"></a>        <span class='hs-varid'>isText</span> <span class='hs-varop'>.=</span> <span class='hs-conid'>True</span>
+<a name="line-75"></a>    
+<a name="line-76"></a>    <span class='hs-varid'>outputFileFlag</span> <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
+<a name="line-77"></a>        <span class='hs-varid'>flag</span> <span class='hs-str'>"o"</span>
+<a name="line-78"></a>        <span class='hs-varid'>s</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>flagArg</span>
+<a name="line-79"></a>        <span class='hs-varid'>outFile</span> <span class='hs-varop'>.=</span> <span class='hs-varid'>s</span>
+<a name="line-80"></a>    
+<a name="line-81"></a>    <span class='hs-varid'>inputFileArg</span> <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
+<a name="line-82"></a>        <span class='hs-varid'>s</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>argArg</span>
+<a name="line-83"></a>        <span class='hs-varid'>inFile</span> <span class='hs-varop'>.=</span> <span class='hs-varid'>s</span>
+<a name="line-84"></a>      <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"input file"</span>
 <a name="line-85"></a>    
-<a name="line-86"></a>    <span class='hs-varid'>flag</span> <span class='hs-varid'>s</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>try</span> <span class='hs-layout'>(</span><span class='hs-varid'>string</span> <span class='hs-str'>"-"</span> <span class='hs-varop'>*&gt;</span> <span class='hs-varid'>string</span> <span class='hs-varid'>s</span><span class='hs-layout'>)</span> <span class='hs-varop'>*&gt;</span> <span class='hs-varid'>spaces</span> <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"flag"</span>
-<a name="line-87"></a>    
-<a name="line-88"></a>    <span class='hs-varid'>argArg</span> <span class='hs-keyglyph'>=</span> <span class='hs-layout'>(</span><span class='hs-conop'>:</span><span class='hs-layout'>)</span> <span class='hs-varop'>&lt;$&gt;</span> <span class='hs-varid'>satisfy</span> <span class='hs-layout'>(</span><span class='hs-varop'>/=</span> <span class='hs-chr'>'-'</span><span class='hs-layout'>)</span> <span class='hs-varop'>&lt;*&gt;</span> <span class='hs-varid'>many</span> <span class='hs-layout'>(</span><span class='hs-varid'>satisfy</span> <span class='hs-layout'>(</span><span class='hs-varop'>/=</span> <span class='hs-chr'>' '</span><span class='hs-layout'>)</span><span class='hs-layout'>)</span> <span class='hs-varop'>&lt;*</span> <span class='hs-varid'>spaces</span> <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"optimization flag"</span>
-<a name="line-89"></a>    
-<a name="line-90"></a>    <span class='hs-varid'>flagArg</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>many1</span> <span class='hs-layout'>(</span><span class='hs-varid'>satisfy</span> <span class='hs-layout'>(</span><span class='hs-varop'>/=</span> <span class='hs-chr'>' '</span><span class='hs-layout'>)</span><span class='hs-layout'>)</span> <span class='hs-varop'>&lt;*</span> <span class='hs-varid'>spaces</span> <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"flag argument"</span>
-<a name="line-91"></a>
+<a name="line-86"></a>    <span class='hs-varid'>optPassFlag</span> <span class='hs-varid'>nms</span> <span class='hs-keyglyph'>=</span> <span class='hs-keyword'>do</span>
+<a name="line-87"></a>        <span class='hs-varid'>p</span> <span class='hs-keyglyph'>&lt;-</span> <span class='hs-varid'>string</span> <span class='hs-str'>"-"</span> <span class='hs-varop'>*&gt;</span> <span class='hs-varid'>flagArg</span>
+<a name="line-88"></a>        <span class='hs-keyword'>if</span> <span class='hs-varid'>elem</span> <span class='hs-varid'>p</span> <span class='hs-varid'>nms</span>
+<a name="line-89"></a>          <span class='hs-keyword'>then</span> <span class='hs-varid'>optPasses</span> <span class='hs-varop'>%=</span> <span class='hs-layout'>(</span><span class='hs-varop'>++</span> <span class='hs-keyglyph'>[</span><span class='hs-varid'>p</span><span class='hs-keyglyph'>]</span><span class='hs-layout'>)</span>
+<a name="line-90"></a>          <span class='hs-keyword'>else</span> <span class='hs-varid'>unexpected</span> <span class='hs-varop'>$</span> <span class='hs-str'>"'"</span> <span class='hs-varop'>++</span> <span class='hs-varid'>p</span> <span class='hs-varop'>++</span> <span class='hs-str'>"'.  Expected the name of a known optimization pass."</span>
+<a name="line-91"></a>      <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"name of optimization pass"</span>
+<a name="line-92"></a>    
+<a name="line-93"></a>    <span class='hs-varid'>flag</span> <span class='hs-varid'>s</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>try</span> <span class='hs-layout'>(</span><span class='hs-varid'>string</span> <span class='hs-str'>"-"</span> <span class='hs-varop'>*&gt;</span> <span class='hs-varid'>string</span> <span class='hs-varid'>s</span><span class='hs-layout'>)</span> <span class='hs-varop'>*&gt;</span> <span class='hs-varid'>spaces</span> <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"flag"</span>
+<a name="line-94"></a>    
+<a name="line-95"></a>    <span class='hs-varid'>argArg</span> <span class='hs-keyglyph'>=</span> <span class='hs-layout'>(</span><span class='hs-conop'>:</span><span class='hs-layout'>)</span> <span class='hs-varop'>&lt;$&gt;</span> <span class='hs-varid'>satisfy</span> <span class='hs-layout'>(</span><span class='hs-varop'>/=</span> <span class='hs-chr'>'-'</span><span class='hs-layout'>)</span> <span class='hs-varop'>&lt;*&gt;</span> <span class='hs-varid'>many</span> <span class='hs-layout'>(</span><span class='hs-varid'>satisfy</span> <span class='hs-layout'>(</span><span class='hs-varop'>/=</span> <span class='hs-chr'>' '</span><span class='hs-layout'>)</span><span class='hs-layout'>)</span> <span class='hs-varop'>&lt;*</span> <span class='hs-varid'>spaces</span> <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"optimization flag"</span>
+<a name="line-96"></a>    
+<a name="line-97"></a>    <span class='hs-varid'>flagArg</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>many1</span> <span class='hs-layout'>(</span><span class='hs-varid'>satisfy</span> <span class='hs-layout'>(</span><span class='hs-varop'>/=</span> <span class='hs-chr'>' '</span><span class='hs-layout'>)</span><span class='hs-layout'>)</span> <span class='hs-varop'>&lt;*</span> <span class='hs-varid'>spaces</span> <span class='hs-varop'>&lt;?&gt;</span> <span class='hs-str'>"flag argument"</span>
+<a name="line-98"></a>
 </pre></body>
 </html>
