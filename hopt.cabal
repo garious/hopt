@@ -13,6 +13,7 @@ executable hopt
                 , LlvmParser
                 , LlvmPrinter
                 , Transforms.ConstProp
+                , Transforms.ConstPropData
                 , Transforms.CopyProp
                 , Transforms.DeadInstructionElimination
   GHC-Options:    -Wall
